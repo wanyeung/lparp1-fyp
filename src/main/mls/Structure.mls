@@ -1,0 +1,7 @@
+module Structure with
+  fun inferKind(v) =
+    if v is Array then
+      if v.length == 0 then "list"
+      else if v.0 is Array then "table"
+      else "list"
+    else "atom"

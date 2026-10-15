@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "cells": [
+    {
+      "id": "dataA",
+      "title": "dataA",
+      "source": "let rowsB = [\n  mut { id: 1, product: \"Tea\", units: 40 },\n  mut { id: 2, product: \"Coffee\", units: 65 },\n  mut { id: 3, product: \"Cocoa\", units: 25 },\n  mut { id: 4, product: \"Matcha\", units: 55 },\n  mut { id: 4, product: (rowsA.1.label), units: 55 }\n]\n\nconsole.log(mut { kind: \"grid\", cellId: \"dataB\", rows: rowsB })\n\nlet rowsA = [\n  mut { id: 1, label: \"Alpha\", value: 10 },\n  mut { id: 2, label: \"Beta\", value: 20 },\n  mut { id: 3, label: \"Gamma\", value: 15 },\n  mut { id: 0, value: 0, label: (rowsB.1.product) },\n  mut { id: 0, label: \"\", value: 0 },\n  mut { id: 0, label: \"\", value: 0 },\n  mut { id: 0, label: \"\", value: 0 },\n  mut { id: 0, label: \"\", value: 0 }\n]\n\nconsole.log(\"loaded\", 3, \"rows\")\nconsole.log(mut { kind: \"grid\", cellId: \"dataA\", rows: rowsA })"
+    },
+    {
+      "id": "chartA",
+      "title": "chartA",
+      "source": "let chartA = mut { mark: \"bar\", encoding: mut { x: mut { field: \"label\", 'type: \"nominal\" }, y: mut { field: \"value\", 'type: \"quantitative\" } }, 'data: mut { values: rowsA } }\n\nconsole.log(mut { kind: \"chart\", cellId: \"chartA\", spec: chartA })"
+    },
+    {
+      "id": "dataB",
+      "title": "dataB",
+      "source": "let rowsB = [\n  mut { id: 1, product: \"Tea\", units: 40 },\n  mut { id: 2, product: \"Coffee\", units: 65 },\n  mut { id: 3, product: \"Cocoa\", units: 25 },\n  mut { id: 4, product: \"Matcha\", units: 55 },\n  mut { id: 0, product: \"\", units: 0 },\n  mut { id: 0, product: \"\", units: 0 }\n]\n\nconsole.log(mut { kind: \"grid\", cellId: \"dataB\", rows: rowsB })"
+    },
+    {
+      "id": "chartB",
+      "title": "chartB",
+      "source": "let chartB = mut { mark: \"bar\", encoding: mut { y: mut { field: \"product\", 'type: \"nominal\" }, x: mut { field: \"units\", 'type: \"quantitative\" } }, 'data: mut { values: rowsB } }\n\nconsole.log(mut { kind: \"chart\", cellId: \"chartB\", spec: chartB })"
+    },
+    {
+      "id": "listC",
+      "title": "listC",
+      "source": "let scoresC = [72, 85, 90, 64]\n\nconsole.log(mut { kind: \"grid\", cellId: \"listC\", value: scoresC })"
+    },
+    {
+      "id": "tableD",
+      "title": "tableD",
+      "source": "let rowsD = [\n  mut { id: 1, item: \"Tea\", note: \"bestseller\", units: rowsB.0.units },\n  mut { id: 2, item: \"Coffee\", units: rowsB.1.units * 2 },\n  mut { id: 3, item: \"Cocoa\" }\n]\n\nconsole.log(mut { kind: \"grid\", cellId: \"tableD\", value: rowsD })"
+    },
+    {
+      "id": "blockE",
+      "title": "blockE",
+      "source": "let settingsE = mut { title: \"Quiz hours\", weeks: 6, target: mut { score: 80, hours: 5 } }\n\nconsole.log(mut { kind: \"grid\", cellId: \"blockE\", value: settingsE })"
+    },
+    {
+      "id": "hierF",
+      "title": "hierF",
+      "source": "let salesF = [\n  mut { area: \"North\", q1: mut { tea: 10, coffee: 20 }, q2: mut { tea: 12, coffee: 18 } },\n  mut { area: \"South\", q1: mut { tea: 7, coffee: 25 }, q2: mut { tea: 9, coffee: 22 } }\n]\n\nconsole.log(mut { kind: \"grid\", cellId: \"hierF\", value: salesF })"
+    },
+    {
+      "id": "gridG",
+      "title": "gridG",
+      "source": "let matrixG = [[1, 2, 3], [4, 5, 6]]\n\nconsole.log(mut { kind: \"grid\", cellId: \"gridG\", value: matrixG })"
+    }
+  ]
+}
