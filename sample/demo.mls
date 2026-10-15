@@ -1,0 +1,5 @@
+fun f(r) = { y: toString(r.x) }
+let result = if ok then { tag: "success", value: 1 } else { tag: "error", value: "boom" }
+let composed = BaseTrait & MixinA & MixinB
+// line 4+ falls back to keyword heuristics in the mock server
+trait Shape

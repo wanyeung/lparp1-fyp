@@ -1,0 +1,60 @@
+// %% dataA
+let rowsA = [
+  mut { id: 1, label: "Alpha", value: 10 },
+  mut { id: 2, label: "Beta", value: 20 },
+  mut { id: 3, label: "Gamma", value: 15 }
+]
+
+console.log(mut { kind: "grid", cellId: "dataA", rows: rowsA })
+
+// %% chartA
+let chartA = mut { mark: "bar", encoding: mut { x: mut { field: "label", 'type: "nominal" }, y: mut { field: "value", 'type: "quantitative" } }, 'data: mut { values: rowsA } }
+
+console.log(mut { kind: "chart", cellId: "chartA", spec: chartA })
+
+// %% dataB
+let rowsB = [
+  mut { id: 1, product: "Tea", units: 40 },
+  mut { id: 2, product: "Coffee", units: 65 },
+  mut { id: 3, product: "Cocoa", units: 25 },
+  mut { id: 4, product: "Matcha", units: 55 }
+]
+
+console.log(mut { kind: "grid", cellId: "dataB", rows: rowsB })
+
+// %% chartB
+let chartB = mut { mark: "bar", encoding: mut { y: mut { field: "product", 'type: "nominal" }, x: mut { field: "units", 'type: "quantitative" } }, 'data: mut { values: rowsB } }
+
+console.log(mut { kind: "chart", cellId: "chartB", spec: chartB })
+
+// %% listC
+let scoresC = [72, 85, 90, 64]
+
+console.log(mut { kind: "grid", cellId: "listC", value: scoresC })
+
+// %% tableD
+let rowsD = [
+  mut { id: 1, item: "Tea", note: "bestseller", units: rowsB.0.units },
+  mut { id: 2, item: "Coffee", units: rowsB.1.units * 2 },
+  mut { id: 3, item: "Cocoa" }
+]
+
+console.log(mut { kind: "grid", cellId: "tableD", value: rowsD })
+
+// %% blockE
+let settingsE = mut { title: "Quiz hours", weeks: 6, target: mut { score: 80, hours: 5 } }
+
+console.log(mut { kind: "grid", cellId: "blockE", value: settingsE })
+
+// %% hierF
+let salesF = [
+  mut { area: "North", q1: mut { tea: 10, coffee: 20 }, q2: mut { tea: 12, coffee: 18 } },
+  mut { area: "South", q1: mut { tea: 7, coffee: 25 }, q2: mut { tea: 9, coffee: 22 } }
+]
+
+console.log(mut { kind: "grid", cellId: "hierF", value: salesF })
+
+// %% gridG
+let matrixG = [[1, 2, 3], [4, 5, 6]]
+
+console.log(mut { kind: "grid", cellId: "gridG", value: matrixG })

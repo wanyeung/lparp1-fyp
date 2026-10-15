@@ -1,0 +1,178 @@
+{
+  "name": "vscode-mls",
+  "displayName": "MLscript InfoView (MVP)",
+  "description": "Cursor-driven InfoView for MLscript: shows inferred structural types, bounds and mixin hierarchy, backed by a swappable mock type-inference server.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:mlscript",
+    "onNotebook:mls-notebook",
+    "onNotebook:mls-percent-notebook"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mlscript",
+        "aliases": [
+          "MLscript",
+          "mlscript"
+        ],
+        "extensions": [
+          ".mls",
+          ".mlscript"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "mls.openInfoView",
+        "title": "MLscript: Open InfoView",
+        "icon": "$(symbol-structure)"
+      },
+      {
+        "command": "mls.refreshInfoView",
+        "title": "MLscript: Refresh InfoView"
+      },
+      {
+        "command": "mls.newNotebook",
+        "title": "MLscript: New Notebook"
+      },
+      {
+        "command": "mls.openAsNotebook",
+        "title": "MLscript: Open as Notebook",
+        "icon": "$(notebook)"
+      },
+      {
+        "command": "mls.openGridView",
+        "title": "MLscript: Open GridView",
+        "icon": "$(table)"
+      },
+      {
+        "command": "mls.openChartView",
+        "title": "MLscript: Open ChartView",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "mls.openGridChartView",
+        "title": "MLscript: Open GridView and ChartView"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "mls.openInfoView",
+          "when": "resourceLangId == mlscript",
+          "group": "navigation"
+        },
+        {
+          "command": "mls.openAsNotebook",
+          "when": "resourceLangId == mlscript && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mls.refreshInfoView",
+          "when": "editorLangId == mlscript"
+        }
+      ],
+      "notebook/toolbar": [
+        {
+          "command": "mls.openGridView",
+          "when": "notebookType == mls-notebook || notebookType == mls-percent-notebook",
+          "group": "navigation"
+        },
+        {
+          "command": "mls.openChartView",
+          "when": "notebookType == mls-notebook || notebookType == mls-percent-notebook",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "mls.openAsNotebook",
+          "when": "resourceExtname == .mls || resourceExtname == .mlscript",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MLscript",
+      "properties": {
+        "mls.infoView.debounceMs": {
+          "type": "number",
+          "default": 60,
+          "description": "Delay (ms) after the last cursor movement before querying the type server."
+        },
+        "mls.compilerBundle": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the hkmc2 compiler bundle MLscript.mjs. Empty = auto-detect ../sheetbook-poc/build/MLscript.mjs."
+        },
+        "mls.nodePath": {
+          "type": "string",
+          "default": "",
+          "description": "Node.js binary used to run cells. Empty = reuse the editor's built-in Node."
+        },
+        "mls.runTimeoutMs": {
+          "type": "number",
+          "default": 60000,
+          "description": "Stop a notebook run after this many milliseconds."
+        },
+        "mls.infoView.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the InfoView automatically when a .mls file or MLscript notebook is opened."
+        }
+      }
+    },
+    "notebooks": [
+      {
+        "type": "mls-notebook",
+        "displayName": "MLscript Notebook",
+        "selector": [
+          {
+            "filenamePattern": "*.imlsnb"
+          }
+        ]
+      },
+      {
+        "type": "mls-percent-notebook",
+        "displayName": "MLscript Notebook (// %% cells)",
+        "selector": [
+          {
+            "filenamePattern": "*.{mls,mlscript}"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./ && node scripts/build-media.mjs",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile",
+    "typecheck": "tsc -p ./ --noEmit && tsc -p media-src --noEmit",
+    "test": "node test/unit.mjs && node test/grid.mjs && node test/e2e.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0",
+    "esbuild": "^0.21.5",
+    "vega": "^5.30.0",
+    "vega-lite": "^5.21.0",
+    "vega-embed": "^6.26.0",
+    "vega-interpreter": "^1.0.5"
+  }
+}
