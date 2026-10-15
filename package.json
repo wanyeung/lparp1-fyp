@@ -1,0 +1,11 @@
+{
+  "name": "mls-loop",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Notebook → table → code loop, written in MLscript",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/build.mjs && node --test \"src/test/js/**/*.test.mjs\""
+  }
+}
