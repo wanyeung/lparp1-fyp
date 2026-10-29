@@ -1,0 +1,143 @@
+{
+  "name": "mlscript-studio",
+  "displayName": "MLscript Studio",
+  "description": "Compile MLscript files with the HKUST TACO hkmc2 compiler.",
+  "version": "0.4.0",
+  "publisher": "mlscript-studio",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Programming Languages", "Linters"],
+  "activationEvents": [
+    "onLanguage:mlscript",
+    "onCommand:mlscriptStudio.compileActive",
+    "onCommand:mlscriptStudio.compileFile",
+    "onCommand:mlscriptStudio.openStudioWorkspace",
+    "onCommand:mlscriptStudio.openDocumentView",
+    "onCustomEditor:mlscriptStudio.document"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mlscriptStudio.compileActive",
+        "title": "MLscript: Compile Current File"
+      },
+      {
+        "command": "mlscriptStudio.compileFile",
+        "title": "MLscript: Compile File"
+      },
+      {
+        "command": "mlscriptStudio.clearDiagnostics",
+        "title": "MLscript: Clear Compiler Diagnostics"
+      },
+      {
+        "command": "mlscriptStudio.openStudioWorkspace",
+        "title": "MLscript: Open Studio Workspace"
+      },
+      {
+        "command": "mlscriptStudio.openDocumentView",
+        "title": "MLscript: Open Document View (Studio Workspace)"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "mlscriptStudio.document",
+        "displayName": "MLscript Studio Workspace",
+        "selector": [
+          {
+            "filenamePattern": "*.mls"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mlscriptStudio.compileActive",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m",
+        "when": "editorLangId == mlscript"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "mlscriptStudio.compileActive",
+          "group": "navigation",
+          "when": "resourceLangId == mlscript"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "mlscriptStudio.openStudioWorkspace",
+          "group": "navigation@10",
+          "when": "resourceLangId == mlscript"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "mlscriptStudio.compileFile",
+          "group": "navigation",
+          "when": "resourceExtname == .mls"
+        },
+        {
+          "command": "mlscriptStudio.openStudioWorkspace",
+          "group": "navigation@1",
+          "when": "resourceExtname == .mls"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mlscriptStudio.clearDiagnostics",
+          "when": "editorLangId == mlscript"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MLscript Studio",
+      "properties": {
+        "mlscriptStudio.compileOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compile local .mls files with hkmc2 after saving."
+        },
+        "mlscriptStudio.showSuccessNotification": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a notification when an explicit hkmc2 compile succeeds."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "mlscript",
+        "aliases": ["MLscript", "mlscript"],
+        "extensions": [".mls"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mlscript",
+        "scopeName": "source.mlscript",
+        "path": "./syntaxes/mlscript.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js --sourcemap",
+    "watch": "npm run compile -- --watch",
+    "test": "npm run compile && esbuild src/document.ts --bundle --platform=node --format=esm --outfile=dist/document.mjs && node --test test/*.test.mjs",
+    "package": "npm run compile && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.1",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.2"
+  }
+}
