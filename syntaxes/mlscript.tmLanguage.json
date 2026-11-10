@@ -1,0 +1,34 @@
+{
+  "scopeName": "source.mlscript",
+  "name": "MLscript",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" }
+  ],
+  "repository": {
+    "comment": {
+      "patterns": [
+        { "name": "comment.line.double-slash.mlscript", "match": "//.*$" },
+        { "name": "comment.block.mlscript", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.mlscript",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.mlscript", "match": "\\\\." }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.mlscript",
+      "match": "\\b-?\\d+(\\.\\d+)?"
+    },
+    "keyword": {
+      "name": "keyword.control.mlscript",
+      "match": "\\b(let|mut|module|fun|if|then|else|with|import)\\b"
+    }
+  }
+}

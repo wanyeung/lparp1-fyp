@@ -1,0 +1,79 @@
+// @studio Business model — café unit economics
+// Price, units, and variable cost are inputs. Contribution and the
+// profit summary are formulas over that one product table, so the
+// operations sheet and the decision note stay in agreement.
+
+// @document Operations sheet
+// id: operations
+// includes: doc:operations, table:products, chart:units, table:contributions, chart:contribution
+// @enddocument
+
+// @document Decision note
+// id: decision
+// includes: doc:decision, table:assumptions, table:summary
+// @enddocument
+
+// @doc Daily operation
+// id: operations
+// Drag a units bar to rewrite that product's literal. Contribution is
+// (price - variable cost) × units, so the second chart moves with it
+// and cannot be dragged.
+// @enddoc
+
+// @doc Should we keep the pastry line?
+// id: decision
+// Fixed cost is shared by every product. Profit subtracts it once.
+// Editing the fixed cost here updates the decision note only through the formula.
+// @enddoc
+
+// @chart Units sold
+// id: units
+// type: bar
+// source: products
+// x: product
+// y: units
+// @endchart
+
+// @chart Contribution
+// id: contribution
+// type: bar
+// source: contributions
+// x: product
+// y: contribution
+// @endchart
+
+module BusinessModel with
+  let assumptions = mut { fixedCost: 4000 }
+
+  let products = [
+    mut { product: "Latte", price: 38, units: 120, variableCost: 12 },
+    mut { product: "Tea", price: 28, units: 80, variableCost: 6 },
+    mut { product: "Pastry", price: 22, units: 60, variableCost: 9 }
+  ]
+
+  let contributions = [
+    mut {
+      product: products.0.product,
+      units: products.0.units,
+      contribution: (products.0.price - products.0.variableCost) * products.0.units
+    },
+    mut {
+      product: products.1.product,
+      units: products.1.units,
+      contribution: (products.1.price - products.1.variableCost) * products.1.units
+    },
+    mut {
+      product: products.2.product,
+      units: products.2.units,
+      contribution: (products.2.price - products.2.variableCost) * products.2.units
+    }
+  ]
+
+  let summary = [
+    mut {
+      revenue: products.0.price * products.0.units + products.1.price * products.1.units + products.2.price * products.2.units,
+      variableCost: products.0.variableCost * products.0.units + products.1.variableCost * products.1.units + products.2.variableCost * products.2.units,
+      fixedCost: assumptions.fixedCost,
+      profit: products.0.price * products.0.units + products.1.price * products.1.units + products.2.price * products.2.units - products.0.variableCost * products.0.units - products.1.variableCost * products.1.units - products.2.variableCost * products.2.units - assumptions.fixedCost
+    }
+  ]

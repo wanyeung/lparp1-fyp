@@ -1,0 +1,76 @@
+// @studio Student learning — grade book
+// Weights and raw scores are the only inputs. Two documents read them:
+// a grade report, and the score sheet a student would edit.
+
+// @document Grade report
+// id: report
+// includes: doc:intro, table:weights, table:grades, chart:totals
+// @enddocument
+
+// @document Score sheet
+// id: scores
+// includes: doc:scores, table:students, chart:quizzes
+// @enddocument
+
+// @doc How the grade is computed
+// id: intro
+// Quiz, lab, and exam are stored once for each student.
+// The total uses the shared weights and is read-only.
+// Change a weight here, or follow a score back to the score sheet.
+// Sorting this table changes the view only.
+// @enddoc
+
+// @doc Scores you can edit
+// id: scores
+// These quiz, lab, and exam cells are literals in the source.
+// Edit one here, or drag a quiz bar. The grade report updates from the same code.
+// @enddoc
+
+// @chart Grade totals
+// id: totals
+// type: bar
+// source: grades
+// x: name
+// y: total
+// @endchart
+
+// @chart Quiz scores
+// id: quizzes
+// type: bar
+// source: students
+// x: name
+// y: quiz
+// @endchart
+
+module StudentLearning with
+  let weights = mut { quiz: 20, lab: 30, exam: 50 }
+
+  let students = [
+    mut { name: "Ada", quiz: 80, lab: 90, exam: 70 },
+    mut { name: "Ben", quiz: 60, lab: 70, exam: 90 },
+    mut { name: "Cho", quiz: 95, lab: 88, exam: 92 }
+  ]
+
+  let grades = [
+    mut {
+      name: students.0.name,
+      quiz: students.0.quiz,
+      lab: students.0.lab,
+      exam: students.0.exam,
+      total: (students.0.quiz * weights.quiz + students.0.lab * weights.lab + students.0.exam * weights.exam) / 100
+    },
+    mut {
+      name: students.1.name,
+      quiz: students.1.quiz,
+      lab: students.1.lab,
+      exam: students.1.exam,
+      total: (students.1.quiz * weights.quiz + students.1.lab * weights.lab + students.1.exam * weights.exam) / 100
+    },
+    mut {
+      name: students.2.name,
+      quiz: students.2.quiz,
+      lab: students.2.lab,
+      exam: students.2.exam,
+      total: (students.2.quiz * weights.quiz + students.2.lab * weights.lab + students.2.exam * weights.exam) / 100
+    }
+  ]

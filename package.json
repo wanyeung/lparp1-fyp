@@ -1,113 +1,78 @@
 {
   "name": "mlscript-studio",
   "displayName": "MLscript Studio",
-  "description": "Compile MLscript files with the HKUST TACO hkmc2 compiler.",
-  "version": "0.4.0",
+  "description": "Code, table, and chart views for MLscript. The .mls file stays the source of truth.",
+  "version": "0.6.1",
   "publisher": "mlscript-studio",
   "license": "MIT",
   "private": true,
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Programming Languages", "Linters"],
+  "categories": ["Programming Languages", "Visualization"],
   "activationEvents": [
     "onLanguage:mlscript",
-    "onCommand:mlscriptStudio.compileActive",
-    "onCommand:mlscriptStudio.compileFile",
-    "onCommand:mlscriptStudio.openStudioWorkspace",
-    "onCommand:mlscriptStudio.openDocumentView",
-    "onCustomEditor:mlscriptStudio.document"
+    "onCommand:mlscriptStudio.openViews",
+    "onCommand:mlscriptStudio.openUseCase"
   ],
-  "main": "./dist/extension.js",
+  "main": "./src/extension.cjs",
   "contributes": {
     "commands": [
       {
-        "command": "mlscriptStudio.compileActive",
-        "title": "MLscript: Compile Current File"
+        "command": "mlscriptStudio.openInfoView",
+        "title": "MLscript: Open InfoView",
+        "icon": "$(info)"
       },
       {
-        "command": "mlscriptStudio.compileFile",
-        "title": "MLscript: Compile File"
+        "command": "mlscriptStudio.openGridView",
+        "title": "MLscript: Open GridView",
+        "icon": "$(table)"
       },
       {
-        "command": "mlscriptStudio.clearDiagnostics",
-        "title": "MLscript: Clear Compiler Diagnostics"
+        "command": "mlscriptStudio.openChartView",
+        "title": "MLscript: Open ChartView",
+        "icon": "$(graph)"
       },
       {
-        "command": "mlscriptStudio.openStudioWorkspace",
-        "title": "MLscript: Open Studio Workspace"
+        "command": "mlscriptStudio.openViews",
+        "title": "MLscript: Open Info, Grid, and Chart"
       },
       {
-        "command": "mlscriptStudio.openDocumentView",
-        "title": "MLscript: Open Document View (Studio Workspace)"
-      }
-    ],
-    "customEditors": [
-      {
-        "viewType": "mlscriptStudio.document",
-        "displayName": "MLscript Studio Workspace",
-        "selector": [
-          {
-            "filenamePattern": "*.mls"
-          }
-        ],
-        "priority": "option"
+        "command": "mlscriptStudio.openUseCase",
+        "title": "MLscript: Open Use Case"
       }
     ],
     "keybindings": [
       {
-        "command": "mlscriptStudio.compileActive",
+        "command": "mlscriptStudio.openViews",
         "key": "ctrl+alt+m",
         "mac": "cmd+alt+m",
         "when": "editorLangId == mlscript"
       }
     ],
     "menus": {
-      "editor/title/run": [
-        {
-          "command": "mlscriptStudio.compileActive",
-          "group": "navigation",
-          "when": "resourceLangId == mlscript"
-        }
-      ],
       "editor/title": [
         {
-          "command": "mlscriptStudio.openStudioWorkspace",
-          "group": "navigation@10",
+          "command": "mlscriptStudio.openViews",
+          "group": "navigation",
           "when": "resourceLangId == mlscript"
         }
       ],
       "explorer/context": [
         {
-          "command": "mlscriptStudio.compileFile",
+          "command": "mlscriptStudio.openViews",
           "group": "navigation",
           "when": "resourceExtname == .mls"
-        },
-        {
-          "command": "mlscriptStudio.openStudioWorkspace",
-          "group": "navigation@1",
-          "when": "resourceExtname == .mls"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "mlscriptStudio.clearDiagnostics",
-          "when": "editorLangId == mlscript"
         }
       ]
     },
     "configuration": {
       "title": "MLscript Studio",
       "properties": {
-        "mlscriptStudio.compileOnSave": {
-          "type": "boolean",
-          "default": true,
-          "description": "Compile local .mls files with hkmc2 after saving."
-        },
-        "mlscriptStudio.showSuccessNotification": {
-          "type": "boolean",
-          "default": false,
-          "description": "Show a notification when an explicit hkmc2 compile succeeds."
+        "mlscriptStudio.debounceMs": {
+          "type": "number",
+          "default": 120,
+          "description": "Wait this long after an edit before refreshing the table and chart projection."
         }
       }
     },
@@ -128,16 +93,7 @@
     ]
   },
   "scripts": {
-    "compile": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js --sourcemap",
-    "watch": "npm run compile -- --watch",
-    "test": "npm run compile && esbuild src/document.ts --bundle --platform=node --format=esm --outfile=dist/document.mjs && node --test test/*.test.mjs",
-    "package": "npm run compile && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.6.1",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.7.2"
+    "test": "node --test test/*.test.mjs",
+    "preview": "node scripts/preview.mjs"
   }
 }

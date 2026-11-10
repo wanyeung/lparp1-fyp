@@ -1,0 +1,61 @@
+// @studio Algorithm benchmark — search timings
+// Microseconds are measured inputs. Speedup divides the linear-search
+// time at the same input size by the other algorithm's time.
+// The timing chart can be dragged. The speedup chart cannot.
+
+// @document Raw timings
+// id: timings
+// includes: doc:setup, table:runs, chart:times
+// @enddocument
+
+// @document Speedup report
+// id: report
+// includes: doc:report, table:comparison, chart:speedups
+// @enddocument
+
+// @doc Setup
+// id: setup
+// Times are microseconds for one lookup. Linear search, binary search,
+// and a hash table, at 1 000 and 10 000 keys. Edit a bar to record a new run.
+// @enddoc
+
+// @doc Against linear search
+// id: report
+// Speedup is baseline / candidate at the same input size. Linear search
+// is the baseline, so its speedup is 1. The formula cells are read-only.
+// @enddoc
+
+// @chart Measured time
+// id: times
+// type: bar
+// source: runs
+// x: label
+// y: microseconds
+// @endchart
+
+// @chart Speedup against linear search
+// id: speedups
+// type: bar
+// source: comparison
+// x: label
+// y: speedup
+// @endchart
+
+module AlgorithmBenchmark with
+  let runs = [
+    mut { label: "Linear 1k", algorithm: "Linear search", inputSize: 1000, microseconds: 12400 },
+    mut { label: "Binary 1k", algorithm: "Binary search", inputSize: 1000, microseconds: 800 },
+    mut { label: "Hash 1k", algorithm: "Hash lookup", inputSize: 1000, microseconds: 300 },
+    mut { label: "Linear 10k", algorithm: "Linear search", inputSize: 10000, microseconds: 128000 },
+    mut { label: "Binary 10k", algorithm: "Binary search", inputSize: 10000, microseconds: 1100 },
+    mut { label: "Hash 10k", algorithm: "Hash lookup", inputSize: 10000, microseconds: 400 }
+  ]
+
+  let comparison = [
+    mut { label: runs.0.label, inputSize: runs.0.inputSize, microseconds: runs.0.microseconds, speedup: runs.0.microseconds / runs.0.microseconds },
+    mut { label: runs.1.label, inputSize: runs.1.inputSize, microseconds: runs.1.microseconds, speedup: runs.0.microseconds / runs.1.microseconds },
+    mut { label: runs.2.label, inputSize: runs.2.inputSize, microseconds: runs.2.microseconds, speedup: runs.0.microseconds / runs.2.microseconds },
+    mut { label: runs.3.label, inputSize: runs.3.inputSize, microseconds: runs.3.microseconds, speedup: runs.3.microseconds / runs.3.microseconds },
+    mut { label: runs.4.label, inputSize: runs.4.inputSize, microseconds: runs.4.microseconds, speedup: runs.3.microseconds / runs.4.microseconds },
+    mut { label: runs.5.label, inputSize: runs.5.inputSize, microseconds: runs.5.microseconds, speedup: runs.3.microseconds / runs.5.microseconds }
+  ]

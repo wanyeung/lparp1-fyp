@@ -1,0 +1,48 @@
+// @studio Experimental measurements — spring length
+// Each trial's temperature and length is a literal. The means divide
+// those five readings. Drag a length bar to change one trial; the mean
+// updates and stays read-only.
+
+// @document Lab notebook
+// id: notebook
+// includes: doc:method, table:trials, chart:lengths
+// @enddocument
+
+// @document Results
+// id: results
+// includes: doc:results, table:summary
+// @enddocument
+
+// @doc Method
+// id: method
+// Five readings from the same caliper. The length chart edits the source
+// value for that trial. Temperature is in the table and is not plotted.
+// @enddoc
+
+// @doc Computed means
+// id: results
+// Both means are formulas over the trial literals. There is nothing to drag
+// on this page. Follow a source chip back to the reading it uses.
+// @enddoc
+
+// @chart Length by trial
+// id: lengths
+// type: bar
+// source: trials
+// x: trial
+// y: length
+// @endchart
+
+module ExperimentMeasurements with
+  let trials = [
+    mut { trial: 1, temperature: 21.0, length: 102.4 },
+    mut { trial: 2, temperature: 21.2, length: 101.8 },
+    mut { trial: 3, temperature: 21.1, length: 103.0 },
+    mut { trial: 4, temperature: 20.9, length: 102.1 },
+    mut { trial: 5, temperature: 21.0, length: 102.7 }
+  ]
+
+  let summary = mut {
+    meanTemperature: (trials.0.temperature + trials.1.temperature + trials.2.temperature + trials.3.temperature + trials.4.temperature) / 5,
+    meanLength: (trials.0.length + trials.1.length + trials.2.length + trials.3.length + trials.4.length) / 5
+  }

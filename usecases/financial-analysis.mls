@@ -1,0 +1,96 @@
+// @studio Financial analysis — three-month cashflow
+// Income, expenses, and the opening balance are inputs.
+// Net and the running balance are computed. A second document
+// breaks the same spending into categories and checks the totals.
+
+// @document Cashflow statement
+// id: statement
+// includes: doc:statement, table:assumptions, table:cashflow, chart:net
+// @enddocument
+
+// @document Income and spending
+// id: spending
+// includes: doc:spending, table:months, chart:income, table:expenses, chart:categories, table:reconciled
+// @enddocument
+
+// @doc Statement
+// id: statement
+// Net and balance follow the monthly literals. They cannot be edited in place.
+// Dragging is disabled on this chart because every bar is a formula.
+// @enddoc
+
+// @doc Where the money moved
+// id: spending
+// Income bars edit the month literals. Category amounts edit the spending table.
+// The reconciliation row adds both lists and should show the same total.
+// @enddoc
+
+// @chart Net by month
+// id: net
+// type: bar
+// source: cashflow
+// x: month
+// y: net
+// @endchart
+
+// @chart Income by month
+// id: income
+// type: bar
+// source: months
+// x: month
+// y: income
+// @endchart
+
+// @chart Spending by category
+// id: categories
+// type: bar
+// source: expenses
+// x: category
+// y: amount
+// @endchart
+
+module FinancialAnalysis with
+  let assumptions = mut { opening: 2000 }
+
+  let months = [
+    mut { month: "Jan", income: 4200, expenses: 3100 },
+    mut { month: "Feb", income: 4200, expenses: 2800 },
+    mut { month: "Mar", income: 4500, expenses: 3600 }
+  ]
+
+  let expenses = [
+    mut { category: "Rent", amount: 6000 },
+    mut { category: "Food", amount: 2100 },
+    mut { category: "Transport", amount: 1400 }
+  ]
+
+  let cashflow = [
+    mut {
+      month: months.0.month,
+      income: months.0.income,
+      expenses: months.0.expenses,
+      net: months.0.income - months.0.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses
+    },
+    mut {
+      month: months.1.month,
+      income: months.1.income,
+      expenses: months.1.expenses,
+      net: months.1.income - months.1.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses
+    },
+    mut {
+      month: months.2.month,
+      income: months.2.income,
+      expenses: months.2.expenses,
+      net: months.2.income - months.2.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses
+    }
+  ]
+
+  let reconciled = [
+    mut {
+      categoryTotal: expenses.0.amount + expenses.1.amount + expenses.2.amount,
+      monthTotal: months.0.expenses + months.1.expenses + months.2.expenses
+    }
+  ]
