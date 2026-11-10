@@ -17,7 +17,7 @@ This branch starts from that studio write-up and fills in the add-in plus five u
 
 ## Use cases
 
-Each file is one demonstration, with two documents over the same `let` bindings.
+Each file is one demonstration. It has two cases, and each case contains subcases. The subcases are the notes, tables, and charts for one part of the question. Every case still reads the same `let` bindings.
 
 | File | Scenario | Edit this | This stays read-only |
 | --- | --- | --- | --- |

@@ -1,29 +1,64 @@
 // @studio Business model — café unit economics
-// Price, units, and variable cost are inputs. Contribution and the
-// profit summary are formulas over that one product table, so the
-// operations sheet and the decision note stay in agreement.
+// Latte, tea, and pastry share one fixed cost. The operations case records
+// what is sold. The decision case asks whether the pastry line still pays
+// for itself after that shared cost.
 
 // @document Operations sheet
 // id: operations
-// includes: doc:operations, table:products, chart:units, table:contributions, chart:contribution
+// includes: document:menu-prices, document:contribution-lines
+// @enddocument
+
+// @document Menu prices and units
+// id: menu-prices
+// includes: doc:menu-prices, table:products, chart:units
+// @enddocument
+
+// @document Contribution by product
+// id: contribution-lines
+// includes: doc:contribution-lines, table:contributions, chart:contribution
 // @enddocument
 
 // @document Decision note
 // id: decision
-// includes: doc:decision, table:assumptions, table:summary
+// includes: document:shared-cost, document:profit-line
 // @enddocument
 
-// @doc Daily operation
-// id: operations
-// Drag a units bar to rewrite that product's literal. Contribution is
-// (price - variable cost) × units, so the second chart moves with it
-// and cannot be dragged.
+// @document Shared fixed cost
+// id: shared-cost
+// includes: doc:shared-cost, table:assumptions
+// @enddocument
+
+// @document Profit after fixed cost
+// id: profit-line
+// includes: doc:profit-line, table:summary
+// @enddocument
+
+// @doc What the counter sells
+// id: menu-prices
+// Latte is 38 for 120 cups, tea is 28 for 80 cups, and pastry is 22 for
+// 60 pieces. Variable cost is 12, 6, and 9 on those same rows.
+// Dragging a units bar rewrites that product's unit literal.
 // @enddoc
 
-// @doc Should we keep the pastry line?
-// id: decision
-// Fixed cost is shared by every product. Profit subtracts it once.
-// Editing the fixed cost here updates the decision note only through the formula.
+// @doc Contribution is not typed in
+// id: contribution-lines
+// Contribution is (price − variable cost) × units: 3120, 1760, and 780.
+// The contribution chart reads those formulas, so its bars cannot be
+// dragged. Setting pastry units to 0 drops that line to 0.
+// @enddoc
+
+// @doc One cost for the whole café
+// id: shared-cost
+// Fixed cost is 4000, stored once. It is not split across latte, tea,
+// and pastry. Editing it here changes profit only through the formula.
+// @enddoc
+
+// @doc Whether pastry still earns its place
+// id: profit-line
+// Revenue is 8120 and variable cost is 2460, so contribution before rent
+// and wages is 5660. Profit subtracts the 4000 fixed cost once and is 1660.
+// Zero pastry units leave profit at 880. The pastry line is not required
+// for the café to cover the fixed cost.
 // @enddoc
 
 // @chart Units sold

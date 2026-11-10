@@ -146,17 +146,7 @@ export function parseStudio(source, options = {}) {
     ? directives.documents
     : [implicitDocument(directives.order, tables, charts, docs, text)];
 
-  for (const document of documents) {
-    for (const block of document.blocks) {
-      if (!artifact(block, tables, charts, docs)) {
-        errors.push({
-          message: `Missing ${block.kind} ${block.id}`,
-          start: document.start,
-          end: document.end,
-        });
-      }
-    }
-  }
+  validateDocuments(documents, tables, charts, docs, errors);
 
   return {
     title: directives.studio || options.fallbackTitle || 'MLscript Studio',
@@ -166,6 +156,42 @@ export function parseStudio(source, options = {}) {
     docs,
     errors,
   };
+}
+
+function validateDocuments(documents, tables, charts, docs, errors) {
+  for (const document of documents) walkDocument(document, []);
+
+  function walkDocument(document, stack) {
+    if (stack.includes(document.id)) {
+      errors.push({
+        message: `Document ${document.id} includes itself`,
+        start: document.start,
+        end: document.end,
+      });
+      return;
+    }
+    const next = stack.concat(document.id);
+    for (const block of document.blocks) {
+      if (block.kind === 'document') {
+        const child = documents.find((candidate) => candidate.id === block.id);
+        if (!child) {
+          errors.push({
+            message: `Missing document ${block.id}`,
+            start: document.start,
+            end: document.end,
+          });
+        } else {
+          walkDocument(child, next);
+        }
+      } else if (!artifact(block, tables, charts, docs)) {
+        errors.push({
+          message: `Missing ${block.kind} ${block.id}`,
+          start: document.start,
+          end: document.end,
+        });
+      }
+    }
+  }
 }
 
 function artifact(block, tables, charts, docs) {
@@ -550,7 +576,7 @@ function takeFields(lines, allowed) {
 
 function parseIncludes(text) {
   return text.split(',').map((part) => part.trim()).filter(Boolean).map((part) => {
-    const match = /^(doc|table|chart):([A-Za-z0-9_-]+)$/.exec(part);
+    const match = /^(doc|table|chart|document):([A-Za-z0-9_-]+)$/.exec(part);
     if (!match) return { kind: 'doc', id: part };
     return { kind: match[1], id: match[2] };
   });

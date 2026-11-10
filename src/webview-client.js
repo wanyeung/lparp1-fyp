@@ -99,6 +99,7 @@ function renderInfo() {
   return el('div', {}, [
     el('h1', { text: table.title }),
     el('p', { class: 'muted mono', text: 'line ' + table.line }),
+    ...caseNotes(table),
     el('h2', { text: 'Fields' }),
     el('table', {}, [
       el('tbody', {}, table.columns.map((column) => {
@@ -118,6 +119,42 @@ function renderInfo() {
       el('button', { class: 'link', type: 'button', onclick: () => reveal(table.start, table.end), text: 'Show in editor' }),
     ]),
   ]);
+}
+
+function casePaths(table) {
+  const documents = model.documents || [];
+  const paths = [];
+  function search(document, stack) {
+    if (!document || stack.some((item) => item.id === document.id)) return;
+    const next = stack.concat(document);
+    let direct = false;
+    document.blocks.forEach((block) => {
+      if (block.kind === 'table' && block.id === table.id) direct = true;
+      if (block.kind === 'document') search(documents.find((item) => item.id === block.id), next);
+    });
+    if (direct) paths.push(next);
+  }
+  const roots = documents.filter((document) => !documents.some((other) => other.blocks.some((block) => block.kind === 'document' && block.id === document.id)));
+  roots.forEach((root) => search(root, []));
+  return paths;
+}
+
+function caseNotes(table) {
+  const notes = [];
+  casePaths(table).forEach((path) => {
+    notes.push(el('p', { class: 'muted', text: path.map((document) => document.title).join(' / ') }));
+    const leaf = path[path.length - 1];
+    leaf.blocks.forEach((block) => {
+      if (block.kind !== 'doc') return;
+      const doc = (model.docs || []).find((item) => item.id === block.id);
+      if (!doc) return;
+      notes.push(el('h2', { text: doc.title }));
+      doc.body.split('\n').filter((line) => line.trim()).forEach((line) => {
+        notes.push(el('p', { text: line }));
+      });
+    });
+  });
+  return notes;
 }
 
 function renderGrid() {

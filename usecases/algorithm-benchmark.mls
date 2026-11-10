@@ -1,28 +1,65 @@
 // @studio Algorithm benchmark — search timings
-// Microseconds are measured inputs. Speedup divides the linear-search
-// time at the same input size by the other algorithm's time.
-// The timing chart can be dragged. The speedup chart cannot.
+// Linear search, binary search, and a hash table, each timed at 1 000
+// and 10 000 keys. The timing case stores the measurements. The speedup
+// case compares each run with linear search at the same input size.
 
 // @document Raw timings
 // id: timings
-// includes: doc:setup, table:runs, chart:times
+// includes: document:one-thousand-keys, document:ten-thousand-keys
+// @enddocument
+
+// @document One thousand keys
+// id: one-thousand-keys
+// includes: doc:one-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document Ten thousand keys
+// id: ten-thousand-keys
+// includes: doc:ten-thousand-keys, table:runs, chart:times
 // @enddocument
 
 // @document Speedup report
 // id: report
-// includes: doc:report, table:comparison, chart:speedups
+// includes: document:matched-sizes, document:linear-baseline
 // @enddocument
 
-// @doc Setup
-// id: setup
-// Times are microseconds for one lookup. Linear search, binary search,
-// and a hash table, at 1 000 and 10 000 keys. Edit a bar to record a new run.
+// @document Same input size
+// id: matched-sizes
+// includes: doc:matched-sizes, table:comparison, chart:speedups
+// @enddocument
+
+// @document Linear search is the baseline
+// id: linear-baseline
+// includes: doc:linear-baseline, table:comparison, chart:speedups
+// @enddocument
+
+// @doc Lookups over 1 000 keys
+// id: one-thousand-keys
+// One lookup takes 12400 microseconds with linear search, 800 with binary
+// search, and 300 with the hash table. Dragging a bar records a new run
+// by rewriting that microseconds literal.
 // @enddoc
 
-// @doc Against linear search
-// id: report
-// Speedup is baseline / candidate at the same input size. Linear search
-// is the baseline, so its speedup is 1. The formula cells are read-only.
+// @doc Lookups over 10 000 keys
+// id: ten-thousand-keys
+// The larger table takes 128000, 1100, and 400 microseconds for the same
+// three algorithms. These rows sit in the same runs table as the 1 000-key
+// timings. They are a separate subcase because the comparison must not
+// mix the two sizes.
+// @enddoc
+
+// @doc Compare only matching sizes
+// id: matched-sizes
+// Binary search and the hash table at 1 000 keys are divided by the
+// 12400 microsecond linear search, not by the 10 000-key time.
+// The 10 000-key rows use 128000 as their own baseline.
+// @enddoc
+
+// @doc Why two speedups are exactly 1
+// id: linear-baseline
+// Speedup is baseline divided by the candidate. Linear search divided by
+// itself is 1 at both sizes. The other speedups are 15.5, 41.333, 116.364,
+// and 320. Those cells are formulas, so the speedup chart cannot be dragged.
 // @enddoc
 
 // @chart Measured time

@@ -54,7 +54,10 @@ test('each use case projects with no errors', () => {
   for (const name of files) {
     const { model } = load(name);
     assert.deepEqual(model.errors, [], name);
-    assert.equal(model.documents.length, 2, name);
+    assert.ok(model.documents.length >= 4, name);
+    const roots = model.documents.filter((document) => !model.documents.some((other) => other.blocks.some((block) => block.kind === 'document' && block.id === document.id)));
+    assert.equal(roots.length, 2, name);
+    assert.ok(model.documents.some((document) => document.blocks.some((block) => block.kind === 'document')), name);
     assert.ok(model.tables.length >= 2, name);
     assert.ok(model.charts.length >= 1, name);
   }
@@ -87,7 +90,16 @@ test('student totals are shared formulas and quiz scores are literals', () => {
   assert.equal(chart(model, 'quizzes').bars[0].editable, true);
   assert.equal(chart(model, 'quizzes').bars[0].value, 80);
   assert.equal(chart(model, 'quizzes').bars[0].label, 'Ada');
-  assert.deepEqual(model.documents.map((document) => document.title), ['Grade report', 'Score sheet']);
+  assert.deepEqual(model.documents.map((document) => document.title), [
+    'Grade report',
+    'Weight policy',
+    'Computed totals',
+    'Score sheet',
+    'Raw scores',
+    'How a student edits',
+  ]);
+  const report = model.documents.find((document) => document.id === 'report');
+  assert.deepEqual(report.blocks.map((block) => block.id), ['weight-policy', 'computed-totals']);
 });
 
 test('editing a quiz literal recomputes the grade and leaves the formula in place', () => {
@@ -214,6 +226,21 @@ let rows = [ mut { name: "Ada", score: 80 } ]
     { kind: 'chart', id: 'scores' },
     { kind: 'table', id: 'rows' },
   ]);
+});
+
+test('a subcase cannot include its own parent', () => {
+  const model = parseStudio(`
+// @document Outer
+// id: outer
+// includes: document:inner
+// @enddocument
+// @document Inner
+// id: inner
+// includes: document:outer
+// @enddocument
+`);
+  assert.ok(model.errors.some((error) => error.message === 'Document outer includes itself'));
+  assert.ok(model.errors.some((error) => error.message === 'Document inner includes itself'));
 });
 
 test('empty input is not written back as a literal', () => {

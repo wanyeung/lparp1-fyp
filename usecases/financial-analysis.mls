@@ -1,28 +1,76 @@
 // @studio Financial analysis — three-month cashflow
-// Income, expenses, and the opening balance are inputs.
-// Net and the running balance are computed. A second document
-// breaks the same spending into categories and checks the totals.
+// January, February, and March share one opening balance. The statement
+// case carries that balance forward. The spending case splits the same
+// money into months, categories, and a check that the two lists agree.
 
 // @document Cashflow statement
 // id: statement
-// includes: doc:statement, table:assumptions, table:cashflow, chart:net
+// includes: document:opening-balance, document:running-balance
+// @enddocument
+
+// @document Opening balance
+// id: opening-balance
+// includes: doc:opening-balance, table:assumptions
+// @enddocument
+
+// @document Running balance
+// id: running-balance
+// includes: doc:running-balance, table:cashflow, chart:net
 // @enddocument
 
 // @document Income and spending
 // id: spending
-// includes: doc:spending, table:months, chart:income, table:expenses, chart:categories, table:reconciled
+// includes: document:monthly-cash, document:spending-categories, document:check-totals
 // @enddocument
 
-// @doc Statement
-// id: statement
-// Net and balance follow the monthly literals. They cannot be edited in place.
-// Dragging is disabled on this chart because every bar is a formula.
+// @document Monthly cash
+// id: monthly-cash
+// includes: doc:monthly-cash, table:months, chart:income
+// @enddocument
+
+// @document Spending categories
+// id: spending-categories
+// includes: doc:spending-categories, table:expenses, chart:categories
+// @enddocument
+
+// @document Check the two lists
+// id: check-totals
+// includes: doc:check-totals, table:reconciled
+// @enddocument
+
+// @doc Where the quarter starts
+// id: opening-balance
+// The books open at 2000. That literal is added once, on the January row.
+// February and March do not add it again; they inherit the balance that
+// January already produced.
 // @enddoc
 
-// @doc Where the money moved
-// id: spending
-// Income bars edit the month literals. Category amounts edit the spending table.
-// The reconciliation row adds both lists and should show the same total.
+// @doc Net and the balance that follows
+// id: running-balance
+// Net is income minus expenses for that month: 1100, 1400, and 900.
+// The balance is the opening 2000 plus every net so far: 3100, 4500, 5400.
+// Both columns are formulas, so the net chart cannot be dragged.
+// @enddoc
+
+// @doc Three months of literals
+// id: monthly-cash
+// January and February each take in 4200. March takes in 4500.
+// Spending on the month rows is 3100, 2800, and 3600. The income bars
+// edit those income literals directly.
+// @enddoc
+
+// @doc Rent, food, and transport
+// id: spending-categories
+// The same quarter of spending is also stored by category: rent 6000,
+// food 2100, and transport 1400. Those are literals, so the category
+// chart can be dragged. They are not a third copy of the month rows.
+// @enddoc
+
+// @doc Both totals should read 9500
+// id: check-totals
+// Category amounts add to 9500. The three month expense figures add to
+// 9500 as well. If one side changes and the other does not, this row
+// is how you see the two lists diverge.
 // @enddoc
 
 // @chart Net by month
