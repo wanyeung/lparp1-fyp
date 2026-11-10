@@ -27,6 +27,30 @@ td.computed { background: color-mix(in srgb, var(--vscode-descriptionForeground,
 .tag { margin-left: 6px; font-size: 11px; color: var(--vscode-descriptionForeground); text-transform: uppercase; }
 .chip { margin-left: 6px; border: 1px solid var(--vscode-panel-border, transparent); border-radius: 8px; padding: 0 6px; background: transparent; cursor: pointer; font-size: 11px; }
 .filter, .editor, select { border: 1px solid var(--vscode-input-border, transparent); background: var(--vscode-input-background); color: var(--vscode-input-foreground); border-radius: 4px; padding: 4px 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin: 0 0 10px; }
+.controls label { display: flex; gap: 6px; align-items: center; color: var(--vscode-descriptionForeground); }
+.type-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; }
+.type-row button { border: 1px solid var(--vscode-panel-border, transparent); background: var(--vscode-input-background); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.type-row button.on { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); }
+.series { width: 100%; height: 220px; display: block; }
+.series.square { height: 320px; }
+.line { fill: none; stroke: var(--vscode-charts-blue, #3794ff); stroke-width: 2; }
+.stem { stroke: var(--vscode-charts-blue, #3794ff); stroke-width: 2; }
+.area { fill: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 28%, transparent); stroke: none; }
+.grid { fill: none; stroke: var(--vscode-panel-border, #888); stroke-width: 1; }
+.dot { fill: var(--vscode-charts-blue, #3794ff); }
+.dot.edit { fill: var(--vscode-charts-green, #3fb950); cursor: ns-resize; }
+.ticks { display: flex; justify-content: space-between; gap: 4px; color: var(--vscode-descriptionForeground); font-size: 11px; }
+.columns { display: flex; align-items: stretch; gap: 8px; height: 220px; }
+.column { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.col-value, .col-label { font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-value { font-family: var(--vscode-editor-font-family); }
+.col-track { flex: 1; width: 100%; max-width: 42px; display: flex; align-items: flex-end; background: color-mix(in srgb, var(--vscode-descriptionForeground, #888) 16%, transparent); border-radius: 4px; }
+.col-track.edit { cursor: ns-resize; touch-action: none; }
+.col-fill { width: 100%; border-radius: 4px; background: var(--vscode-charts-blue, #3794ff); }
+.col-track.edit .col-fill { background: var(--vscode-charts-green, #3fb950); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+.swatch { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: middle; }
 .filter { width: min(280px, 100%); margin: 0 0 8px; }
 .bar-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .bar-label { width: 7.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

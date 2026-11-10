@@ -141,9 +141,12 @@ test('cashflow nets, balances, and category check share the monthly inputs', () 
     ['3100', '4500', '5400'],
   );
   assert.equal(cell(model, 'cashflow', 0, 'net').editable, false);
-  assert.equal(cell(model, 'reconciled', 0, 'categoryTotal').display, '9500');
-  assert.equal(cell(model, 'reconciled', 0, 'monthTotal').display, '9500');
+  assert.equal(table(model, 'months').rows.length, 12);
+  assert.equal(cell(model, 'cashflow', 11, 'balance').display, '15000');
+  assert.equal(cell(model, 'reconciled', 0, 'categoryTotal').display, '46600');
+  assert.equal(cell(model, 'reconciled', 0, 'monthTotal').display, '46600');
   assert.equal(chart(model, 'net').bars.every((bar) => bar.editable === false), true);
+  assert.equal(chart(model, 'balance').type, 'line');
   assert.equal(chart(model, 'income').bars.every((bar) => bar.editable), true);
 
   const income = cell(model, 'months', 1, 'income');
@@ -151,6 +154,7 @@ test('cashflow nets, balances, and category check share the monthly inputs', () 
   assert.equal(cell(patched, 'cashflow', 1, 'net').display, '2200');
   assert.equal(cell(patched, 'cashflow', 1, 'balance').display, '5300');
   assert.equal(cell(patched, 'cashflow', 2, 'balance').display, '6200');
+  assert.equal(cell(patched, 'cashflow', 11, 'balance').display, '15800');
   assert.equal(field(model, 'assumptions', 'Opening').editable, true);
 });
 

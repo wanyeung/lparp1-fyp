@@ -345,7 +345,10 @@ function buildChart(chart, tables) {
     end: chart.end,
     bars: [],
   };
-  if (base.type !== 'bar') return { ...base, error: `${chart.title}: only bar charts are in this prototype` };
+  const chartTypes = ['bar', 'column', 'line', 'area', 'step', 'scatter', 'lollipop', 'pie', 'donut', 'radar'];
+  if (!chartTypes.includes(base.type)) {
+    return { ...base, error: `${chart.title}: chart type must be ${chartTypes.join(', ')}` };
+  }
   const table = tables.find((candidate) => candidate.id === chart.source);
   if (!table) return { ...base, error: `${chart.title}: unknown table ${chart.source}` };
   if (!chart.x || !chart.y) return { ...base, error: `${chart.title}: name both x and y columns` };

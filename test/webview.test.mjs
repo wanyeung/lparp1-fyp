@@ -8,7 +8,13 @@ test('each view is its own panel, not a document page', () => {
     assert.match(html, /script-src 'nonce-abc123'/);
     assert.match(html, new RegExp(`data-kind="${kind}"`));
     assert.doesNotMatch(html, /This page is a reading/);
-    if (kind === 'chart') assert.match(html, /aria-label': 'Chart'/);
+    if (kind === 'chart') {
+      assert.match(html, /aria-label': 'Chart'/);
+      assert.match(html, /aria-label': 'Chart type'/);
+      for (const label of ['Bar', 'Column', 'Line', 'Area', 'Step', 'Scatter', 'Lollipop', 'Pie', 'Donut', 'Radar']) {
+        assert.match(html, new RegExp(label));
+      }
+    }
     assert.doesNotMatch(html, /window\.__MLS_BOOT__ =/);
   }
 });

@@ -1,6 +1,6 @@
-// @studio Financial analysis — three-month cashflow
-// January, February, and March share one opening balance. The statement
-// case carries that balance forward. The spending case splits the same
+// @studio Financial analysis — twelve-month cashflow
+// A full year shares one opening balance. The statement case carries that
+// balance from January through December. The spending case splits the same
 // money into months, categories, and a check that the two lists agree.
 
 // @document Cashflow statement
@@ -15,7 +15,7 @@
 
 // @document Running balance
 // id: running-balance
-// includes: doc:running-balance, table:cashflow, chart:net
+// includes: doc:running-balance, table:cashflow, chart:net, chart:balance
 // @enddocument
 
 // @document Income and spending
@@ -38,38 +38,39 @@
 // includes: doc:check-totals, table:reconciled
 // @enddocument
 
-// @doc Where the quarter starts
+// @doc Where the year starts
 // id: opening-balance
 // The books open at 2000. That literal is added once, on the January row.
-// February and March do not add it again; they inherit the balance that
-// January already produced.
+// Every later month inherits the balance already produced. It is not added again.
 // @enddoc
 
 // @doc Net and the balance that follows
 // id: running-balance
-// Net is income minus expenses for that month: 1100, 1400, and 900.
-// The balance is the opening 2000 plus every net so far: 3100, 4500, 5400.
-// Both columns are formulas, so the net chart cannot be dragged.
+// Net is income minus expenses for that month. The first three nets are
+// 1100, 1400, and 900. The year ends at a closing balance of 15000.
+// Both columns are formulas. In ChartView, choose Line or Area to read
+// the year as a time series, or Bar to compare single months.
 // @enddoc
 
-// @doc Three months of literals
+// @doc Twelve months of literals
 // id: monthly-cash
-// January and February each take in 4200. March takes in 4500.
-// Spending on the month rows is 3100, 2800, and 3600. The income bars
-// edit those income literals directly.
+// January and February each take in 4200. Income then moves through the
+// year and finishes at 6200 in December. Expenses on the month rows run
+// from 3100 in January to 5100 in December. The income chart edits those
+// income literals directly.
 // @enddoc
 
-// @doc Rent, food, and transport
+// @doc Rent, food, transport, and utilities
 // id: spending-categories
-// The same quarter of spending is also stored by category: rent 6000,
-// food 2100, and transport 1400. Those are literals, so the category
-// chart can be dragged. They are not a third copy of the month rows.
+// The same year of spending is also stored by category: rent 24000,
+// food 12600, transport 6000, and utilities 4000. Those are literals, so
+// the category chart can be dragged. They are not a second copy of the month rows.
 // @enddoc
 
-// @doc Both totals should read 9500
+// @doc Both totals should read 46600
 // id: check-totals
-// Category amounts add to 9500. The three month expense figures add to
-// 9500 as well. If one side changes and the other does not, this row
+// Category amounts add to 46600. The twelve month expense figures add to
+// 46600 as well. If one side changes and the other does not, this row
 // is how you see the two lists diverge.
 // @enddoc
 
@@ -97,19 +98,37 @@
 // y: amount
 // @endchart
 
+// @chart Closing balance
+// id: balance
+// type: line
+// source: cashflow
+// x: month
+// y: balance
+// @endchart
+
 module FinancialAnalysis with
   let assumptions = mut { opening: 2000 }
 
   let months = [
     mut { month: "Jan", income: 4200, expenses: 3100 },
     mut { month: "Feb", income: 4200, expenses: 2800 },
-    mut { month: "Mar", income: 4500, expenses: 3600 }
+    mut { month: "Mar", income: 4500, expenses: 3600 },
+    mut { month: "Apr", income: 4800, expenses: 3400 },
+    mut { month: "May", income: 5100, expenses: 3900 },
+    mut { month: "Jun", income: 5000, expenses: 4200 },
+    mut { month: "Jul", income: 4600, expenses: 4100 },
+    mut { month: "Aug", income: 4700, expenses: 3600 },
+    mut { month: "Sep", income: 5300, expenses: 4000 },
+    mut { month: "Oct", income: 5600, expenses: 4300 },
+    mut { month: "Nov", income: 5400, expenses: 4500 },
+    mut { month: "Dec", income: 6200, expenses: 5100 }
   ]
 
   let expenses = [
-    mut { category: "Rent", amount: 6000 },
-    mut { category: "Food", amount: 2100 },
-    mut { category: "Transport", amount: 1400 }
+    mut { category: "Rent", amount: 24000 },
+    mut { category: "Food", amount: 12600 },
+    mut { category: "Transport", amount: 6000 },
+    mut { category: "Utilities", amount: 4000 }
   ]
 
   let cashflow = [
@@ -133,12 +152,75 @@ module FinancialAnalysis with
       expenses: months.2.expenses,
       net: months.2.income - months.2.expenses,
       balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses
+    },
+    mut {
+      month: months.3.month,
+      income: months.3.income,
+      expenses: months.3.expenses,
+      net: months.3.income - months.3.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses
+    },
+    mut {
+      month: months.4.month,
+      income: months.4.income,
+      expenses: months.4.expenses,
+      net: months.4.income - months.4.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses
+    },
+    mut {
+      month: months.5.month,
+      income: months.5.income,
+      expenses: months.5.expenses,
+      net: months.5.income - months.5.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses
+    },
+    mut {
+      month: months.6.month,
+      income: months.6.income,
+      expenses: months.6.expenses,
+      net: months.6.income - months.6.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses
+    },
+    mut {
+      month: months.7.month,
+      income: months.7.income,
+      expenses: months.7.expenses,
+      net: months.7.income - months.7.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses + months.7.income - months.7.expenses
+    },
+    mut {
+      month: months.8.month,
+      income: months.8.income,
+      expenses: months.8.expenses,
+      net: months.8.income - months.8.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses + months.7.income - months.7.expenses + months.8.income - months.8.expenses
+    },
+    mut {
+      month: months.9.month,
+      income: months.9.income,
+      expenses: months.9.expenses,
+      net: months.9.income - months.9.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses + months.7.income - months.7.expenses + months.8.income - months.8.expenses + months.9.income - months.9.expenses
+    },
+    mut {
+      month: months.10.month,
+      income: months.10.income,
+      expenses: months.10.expenses,
+      net: months.10.income - months.10.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses + months.7.income - months.7.expenses + months.8.income - months.8.expenses + months.9.income - months.9.expenses + months.10.income - months.10.expenses
+    },
+    mut {
+      month: months.11.month,
+      income: months.11.income,
+      expenses: months.11.expenses,
+      net: months.11.income - months.11.expenses,
+      balance: assumptions.opening + months.0.income - months.0.expenses + months.1.income - months.1.expenses + months.2.income - months.2.expenses + months.3.income - months.3.expenses + months.4.income - months.4.expenses + months.5.income - months.5.expenses + months.6.income - months.6.expenses + months.7.income - months.7.expenses + months.8.income - months.8.expenses + months.9.income - months.9.expenses + months.10.income - months.10.expenses + months.11.income - months.11.expenses
     }
   ]
 
   let reconciled = [
     mut {
-      categoryTotal: expenses.0.amount + expenses.1.amount + expenses.2.amount,
-      monthTotal: months.0.expenses + months.1.expenses + months.2.expenses
+      categoryTotal: expenses.0.amount + expenses.1.amount + expenses.2.amount + expenses.3.amount,
+      monthTotal: months.0.expenses + months.1.expenses + months.2.expenses + months.3.expenses + months.4.expenses + months.5.expenses + months.6.expenses + months.7.expenses + months.8.expenses + months.9.expenses + months.10.expenses + months.11.expenses
     }
   ]
