@@ -1,0 +1,177 @@
+{
+  "name": "mlscript-studio",
+  "displayName": "MLscript Studio",
+  "description": "Executable MLscript documents with a combined hkmc2 workspace, bidirectional source editing, charts and six worked use-case notebooks.",
+  "version": "0.7.1",
+  "publisher": "mlscript-studio",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Notebooks"
+  ],
+  "keywords": [
+    "MLscript",
+    "hkmc2",
+    "notebook",
+    "document",
+    "chart"
+  ],
+  "activationEvents": [
+    "onLanguage:mlscript",
+    "onCommand:mlscriptStudio.compileActive",
+    "onCommand:mlscriptStudio.compileFile",
+    "onCommand:mlscriptStudio.openStudioWorkspace",
+    "onCommand:mlscriptStudio.openDocumentView",
+    "onCommand:mlscriptStudio.addDocumentLibrary",
+    "onCommand:mlscriptStudio.buildHtmlDocument",
+    "onCustomEditor:mlscriptStudio.document"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "mlscriptStudio.compileActive",
+        "title": "MLscript: Compile Current File"
+      },
+      {
+        "command": "mlscriptStudio.compileFile",
+        "title": "MLscript: Compile File"
+      },
+      {
+        "command": "mlscriptStudio.clearDiagnostics",
+        "title": "MLscript: Clear Compiler Diagnostics"
+      },
+      {
+        "command": "mlscriptStudio.openStudioWorkspace",
+        "title": "MLscript: Open Studio Workspace"
+      },
+      {
+        "command": "mlscriptStudio.openDocumentView",
+        "title": "MLscript: Open Document View (Studio Workspace)"
+      },
+      {
+        "command": "mlscriptStudio.addDocumentLibrary",
+        "title": "MLscript: Add Document Library to Workspace"
+      },
+      {
+        "command": "mlscriptStudio.buildHtmlDocument",
+        "title": "MLscript: Build HTML Document"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "mlscriptStudio.document",
+        "displayName": "MLscript Studio Workspace",
+        "selector": [
+          {
+            "filenamePattern": "*.mls"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "mlscriptStudio.compileActive",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m",
+        "when": "editorLangId == mlscript"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "mlscriptStudio.compileActive",
+          "group": "navigation",
+          "when": "resourceLangId == mlscript"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "mlscriptStudio.openStudioWorkspace",
+          "group": "navigation@10",
+          "when": "resourceLangId == mlscript"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "mlscriptStudio.compileFile",
+          "group": "navigation",
+          "when": "resourceExtname == .mls"
+        },
+        {
+          "command": "mlscriptStudio.openStudioWorkspace",
+          "group": "navigation@1",
+          "when": "resourceExtname == .mls"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mlscriptStudio.clearDiagnostics",
+          "when": "editorLangId == mlscript"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MLscript Studio",
+      "properties": {
+        "mlscriptStudio.livePreview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Execute and rebuild open Studio documents after saved source or imported-MLscript changes. Trusted workspaces only; this runs code."
+        },
+        "mlscriptStudio.compileOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compile local .mls files with hkmc2 after saving."
+        },
+        "mlscriptStudio.showSuccessNotification": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a notification when an explicit hkmc2 compile succeeds."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "mlscript",
+        "aliases": [
+          "MLscript",
+          "mlscript"
+        ],
+        "extensions": [
+          ".mls"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mlscript",
+        "scopeName": "source.mlscript",
+        "path": "./syntaxes/mlscript.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js --sourcemap",
+    "build:document": "node scripts/build_document.mjs",
+    "check": "tsc --noEmit --strict --target ES2022 --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck src/*.ts",
+    "watch": "npm run compile -- --watch",
+    "test": "npm run compile && esbuild src/document.ts --bundle --platform=node --format=esm --outfile=dist/document.mjs && esbuild src/edit.ts --bundle --platform=node --format=esm --outfile=dist/edit.mjs && node --test test/*.test.mjs",
+    "package": "npm run compile && npx @vscode/vsce package --no-dependencies --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.1",
+    "esbuild": "^0.25.0",
+    "jsdom": "^31.0.0",
+    "typescript": "^5.7.2"
+  }
+}

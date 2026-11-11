@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.vsix
+.DS_Store
+library/Studio.mjs
+examples/**/*.mjs
+examples/**/*.html
+examples/**/*.document.json
