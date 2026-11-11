@@ -1,0 +1,535 @@
+import "./RuntimeJS.mjs"
+import "./Rendering.mjs"
+import "./LazyArray.mjs"
+import "./Iter.mjs"
+
+open annotations { mayNotRaiseEffects }
+
+
+module Runtime with ...
+
+
+object Unit with
+  fun toString() = "()"
+
+// This object is used as a marker for non-local label continues.
+object Continue
+
+// This object is used as a marker for the end of a while loop in the compiled codegen.
+// It is possible for the loop body to contain a return statement,
+// in which case we want to distinguish between returning from the loop body and loop termination.
+object LoopEnd
+val short_and = RuntimeJS.short_and
+val short_or = RuntimeJS.short_or
+
+
+fun unreachable = throw Error("unreachable")
+
+fun assertFail(file, line) = throw Error("Assertion failed (" + file + ":" + line + ")")
+
+
+fun checkArgs(functionName, expected, isUB, got) =
+  if got < expected || isUB && got > expected do
+    let name = if functionName.length > 0 then " '" + functionName + "'" else ""
+    // throw globalThis.Error("Function" + name + " expected "
+    //   + (if isUB then "" else "at least ")
+    //   + expected
+    //   + " argument(s) but got " + got)
+    throw Error of "Function" + name + " expected "
+      + (if isUB then "" else "at least " )
+      + expected + " argument"
+      + (if expected === 1 then "" else "s")
+      + " but got " + got
+
+fun checkSelect(sel, nme, qual) =
+  if sel === undefined then
+    throw Error("Access to required field '" + nme + "' yielded 'undefined'")
+  else
+    qual.(nme + "$__checkNotMethod")
+    sel
+
+fun safeCall(x) =
+  if x is undefined then () else x
+
+fun checkCall(x) =
+  if x is undefined
+  then throw Error("MLscript call unexpectedly returned `undefined`, the forbidden value.")
+  else x
+
+fun deboundMethod(mtdName, clsName) =
+  throw Error of
+    "[debinding error] Method '" + mtdName + "' of class '" + clsName + "' was accessed without being called."
+
+
+val bitand = RuntimeJS.bitand
+val bitnot = RuntimeJS.bitnot
+val bitor = RuntimeJS.bitor
+val shl = RuntimeJS.shl
+val try_catch = RuntimeJS.try_catch
+
+class EffectHandle(_reified) with
+  val reified = _reified
+  fun resumeWith(value) =
+    _try(() => resume(reified.contTrace)(value))
+  fun raise() =
+    set curEffect = reified
+
+fun _try(f) =
+  let res = f()
+  if curEffect !== null then
+    let tmp = curEffect
+    set curEffect = null
+    EffectHandle(tmp)
+  else res
+
+
+// For `pattern` definitions
+data class MatchSuccess(output, bindings)
+data class MatchFailure(errors)
+
+// For pattern matching on tuples
+module Tuple with
+  
+  @mayNotRaiseEffects
+  fun slice(xs, i, j) = xs.slice(i, xs.length - j)
+  
+  @mayNotRaiseEffects
+  fun lazySlice(xs, i, j) = LazyArray.dropLeftRight(i, j)(xs)
+  @mayNotRaiseEffects
+  fun lazyConcat(...args) = LazyArray.__concat(...args)
+  
+  @mayNotRaiseEffects
+  fun get(xs, i) =
+    if i >= xs.length do
+      throw RangeError("Tuple.get: index out of bounds")
+    if i < -xs.length do
+      throw RangeError("Tuple.get: negative index out of bounds")
+    xs.[i]
+  
+  @mayNotRaiseEffects
+  fun isArrayLike(xs) = Iter.isArrayLike(xs)
+  val split = LazyArray.__split
+
+module Str with
+  
+  @mayNotRaiseEffects
+  fun startsWith(string, prefix) = string.startsWith(prefix)
+  
+  @mayNotRaiseEffects
+  fun get(string, i) =
+    if i >= string.length then
+      throw RangeError("Str.get: index out of bounds")
+    else string.at(i)
+  
+  @mayNotRaiseEffects
+  fun take(string, n) = string.slice(0, n)
+  
+  @mayNotRaiseEffects
+  fun leave(string, n) = string.slice(n)
+
+// Re-export rendering functions
+val render = Rendering.render
+
+fun printRaw(x) = console.log(render(x, indent: 2, breakLength: 76))
+
+// TraceLogger
+
+module TraceLogger with
+  mut val enabled = false
+  mut val indentLvl = 0
+  fun indent() =
+    if enabled then
+      let prev = indentLvl
+      set indentLvl = prev + 1
+      prev
+    else ()
+  fun resetIndent(n) =
+    if enabled then
+      set indentLvl = n
+    else ()
+  fun log(msg) =
+    if enabled then
+      console.log("| ".repeat(indentLvl) + msg.replaceAll("\n", "\n" + "  ".repeat(indentLvl)))
+    else ()
+
+// Private definitions for algebraic effects
+
+// layout:
+// | f | pc | pcStr | debugInfo | this | argLists... (*) | localCnt | locals... |
+// (*) argLists is length encoded nested array
+
+mut val curEffect = null
+mut val resumeValue = null
+mut val resumeArr = null
+mut val resumeIdx = null
+mut val resumePc = -1
+
+object FatalEffect
+object PrintStackEffect
+
+data class FunctionContFrame(next, saved) with
+  fun resume(value) =
+    let
+      i = 0
+      f = saved.[0]
+      argListsLength = saved.[5]
+      currentArgList = 6
+    set
+      resumeValue = value
+      resumeArr = saved
+      resumePc = saved.[1]
+    if argListsLength === 0 do
+      console.log("cannot resume getters")
+    while i < argListsLength - 1 do
+      let argListLength = saved.[currentArgList]
+      set
+        f = f.apply(saved.[4], saved.slice(currentArgList + 1, currentArgList + 1 + argListLength))
+        currentArgList += argListLength + 1
+        i += 1
+    let argListLength = saved.[currentArgList]
+    set
+      resumeIdx = currentArgList + argListLength + 2
+    f.apply(saved.[4], saved.slice(currentArgList + 1, currentArgList + 1 + argListLength))
+  fun getLocals =
+    let debugInfo = saved.[3]
+    let i = 0
+    let cur = 6
+    while i < saved.[5] do
+      set
+        cur += saved.[cur] + 1
+        i += 1
+    let res = mut []
+    let i = 1
+    while i < debugInfo.length do
+      res.push(new LocalVarInfo(debugInfo.[i + 1], saved.[cur + 1 + debugInfo.[i]]))
+      set i += 2
+    res
+  fun getNme = saved.[3].[0]
+  fun getLoc =
+    let loc = saved.[2]
+    if
+      loc is null then "pc=" + saved.[1]
+      else loc
+
+data class HandlerContFrame(next, nextHandler, handler)
+
+data class ContTrace(next, last, nextHandler, lastHandler, resumed)
+data class EffectSig(contTrace, handler, handlerFun)
+
+class NonLocalReturn with
+  fun ret(value)
+
+data class FnLocalsInfo(fnName, locals)
+data class LocalVarInfo(localName, value)
+data class CustomStackError(stack) with
+  fun toString() = stack
+
+
+fun resetEffects() =
+  set
+    curEffect = null
+    resumePc = -1
+
+fun raisePrintStackEffect(showLocals) =
+  mkEffect(PrintStackEffect, showLocals)
+
+fun topLevelEffect(debug) =
+  let tr = curEffect
+  let v = null
+  while tr is EffectSig and tr.handler === PrintStackEffect do
+    console.log(showStackTrace("Stack Trace:", tr, debug, tr.handlerFun))
+    set
+      curEffect = null
+      v = resume(tr.contTrace)(())
+      tr = curEffect
+  if tr is EffectSig then
+    set curEffect = null
+    throw CustomStackError(showStackTrace("Error: Unhandled effect " + tr.handler.constructor.name, tr, debug, false))
+  else
+    v
+
+fun illegalEffect(position) =
+  let tmp = curEffect
+  set curEffect = null
+  throw CustomStackError(showStackTrace("Error: Effect " + tmp.handler.constructor.name + " is raised " + position, tmp, false, false))
+
+fun showStackTrace(header, tr, debug, showLocals) =
+  let
+    msg = header
+    curHandler = tr.contTrace
+    atTail = true
+  if debug do
+    while curHandler !== null do
+      let cur = curHandler.next
+      while cur !== null do
+        let curLocals = cur.getLocals
+        let loc = cur.getLoc
+        let localsMsg = if showLocals and curLocals.length > 0
+          then " with locals: " + curLocals.map(l => l.localName + "=" + Rendering.render(l.value)).join(", ")
+          else ""
+        set
+          msg += "\n\tat " + cur.getNme + " (" + loc + ")"
+          msg += localsMsg
+          cur = cur.next
+          atTail = false
+      set curHandler = curHandler.nextHandler
+      if curHandler !== null do
+        set
+          msg += "\n\twith handler " + curHandler.handler.constructor.name
+          atTail = false
+    if atTail do
+      set msg += "\n\tat tail position"
+  msg
+
+fun showFunctionContChain(cont, hl, vis, reps) =
+  if cont is FunctionContFrame then
+    let result = cont.constructor.name + "(pc=" + cont.saved.[1]
+    hl.forEach((m, marker) => if m.has(cont) do set result += ", " + marker)
+    if vis.has(cont) then
+      set reps = reps + 1
+      if reps > 10 do
+        throw Error("10 repeated continuation frame (loop?)")
+      set result += ", REPEAT"
+    else
+      vis.add(cont)
+    result + ") -> " + showFunctionContChain(cont.next, hl, vis, reps)
+  else if cont === null then
+    "(null)"
+  else
+    "(NOT CONT)"
+
+fun showHandlerContChain(cont, hl, vis, reps) =
+  if cont is HandlerContFrame then
+    let result = cont.handler.constructor.name
+    hl.forEach((m, marker) => if m.has(cont) do set result += ", " + marker)
+    if vis.has(cont) then
+      set reps = reps + 1
+      if reps > 10 do
+        throw Error("10 repeated continuation frame (loop?)")
+      set result += ", REPEAT"
+    else
+      vis.add(cont)
+    result + " -> " + showFunctionContChain(cont.next, hl, vis, reps)
+  else if cont === null then
+    "(null)"
+  else
+    "(NOT HANDLER CONT)"
+
+fun debugCont(cont) = console.log(showFunctionContChain(cont, new Map(), new Set(), 0))
+fun debugHandler(cont) = console.log(showHandlerContChain(cont, new Map(), new Set(), 0))
+
+fun debugContTrace(contTrace) =
+  if contTrace is ContTrace then
+    console.log("resumed: ", contTrace.resumed)
+    if contTrace.last === contTrace do
+      console.log("<last is self>")
+    if contTrace.lastHandler === contTrace do
+      console.log("<lastHandler is self>")
+    let vis = new Set()
+    let hl = new Map()
+    hl.set("last", new Set([contTrace.last]))
+    hl.set("last-handler", new Set([contTrace.lastHandler]))
+    console.log(showFunctionContChain(contTrace.next, hl, vis, 0))
+    let cur = contTrace.nextHandler
+    while cur !== null do
+      console.log(showHandlerContChain(cur, hl, vis, 0))
+      set cur = cur.nextHandler
+    console.log()
+  else
+    console.log("Not a cont trace:")
+    console.log(contTrace)
+
+fun debugEff(eff) =
+  if eff is EffectSig then
+    console.log("Debug EffectSig:")
+    console.log("handler: ", eff.handler.constructor.name)
+    console.log("handlerFun: ", eff.handlerFun)
+    debugContTrace(eff.contTrace)
+  else
+    console.log("Not an effect:")
+    console.log(eff)
+
+// runtime implementations
+fun unwind(...saved) =
+  set
+    curEffect.contTrace.last.next = new mut FunctionContFrame(null, saved)
+    curEffect.contTrace.last = curEffect.contTrace.last.next
+
+fun mkEffect(handler, handlerFun) =
+  let res = new mut EffectSig(new mut ContTrace(null, null, null, null, false), handler, handlerFun)
+  set
+    res.contTrace.last = res.contTrace
+    res.contTrace.lastHandler = res.contTrace
+    curEffect = res
+
+fun handleBlockImpl(cur, handler) =
+  let handlerFrame = new mut HandlerContFrame(null, null, handler)
+  set
+    cur.contTrace.lastHandler.nextHandler = handlerFrame
+    cur.contTrace.lastHandler = handlerFrame
+    cur.contTrace.last = handlerFrame
+  handleEffects(cur)
+
+fun enterHandleBlock(handler, body) =
+  let tmp = body()
+  if curEffect === null then
+    tmp
+  else
+    handleBlockImpl(curEffect, handler)
+
+fun handleEffects(cur) =
+  while cur is
+    EffectSig then
+      let nxt = handleEffect(cur)
+      if cur === nxt then
+        set curEffect = cur
+        return null
+      else
+        set cur = nxt
+    else
+      return cur
+
+// return either new effect, final result or the same continuation if there is no handler
+fun handleEffect(cur) =
+  // debugEff(cur)
+  // find the handle block corresponding to the current effect
+  let prevHandlerFrame = cur.contTrace
+  while prevHandlerFrame.nextHandler !== null and prevHandlerFrame.nextHandler.handler !== cur.handler do
+    set prevHandlerFrame = prevHandlerFrame.nextHandler
+
+  // no matching handle block
+  if prevHandlerFrame.nextHandler === null do
+    return cur
+
+  // the matching handle block
+  let handlerFrame = prevHandlerFrame.nextHandler
+
+  // unlink and save frames
+  let saved = new mut ContTrace(
+    handlerFrame.next,
+    cur.contTrace.last,
+    handlerFrame.nextHandler,
+    cur.contTrace.lastHandler,
+    false
+  )
+  
+  if cur.contTrace.last === handlerFrame do set saved.last = saved
+  if cur.contTrace.lastHandler === handlerFrame do set saved.lastHandler = saved
+  
+  set
+    cur.contTrace.last = handlerFrame
+    cur.contTrace.lastHandler = handlerFrame
+    handlerFrame.next = null
+    handlerFrame.nextHandler = null
+
+  // handle the effect
+  set curEffect = null
+  let tmp = set stackDepth += 2 in cur.handlerFun(resume(cur.contTrace))
+  if curEffect !== null then
+    set cur = curEffect
+    // relink the saved frames
+    if saved.next !== null do
+      set cur.contTrace.last.next = saved.next
+    if saved.last !== saved do
+      set cur.contTrace.last = saved.last
+    if saved.nextHandler !== null do
+      set
+        cur.contTrace.lastHandler.nextHandler = saved.nextHandler
+        cur.contTrace.lastHandler = saved.lastHandler
+    cur
+  else
+    // resume the unlinked handle blocks
+    resumeContTrace(saved, tmp)
+
+fun resume(contTrace)(value) =
+  if contTrace.resumed do
+    throw Error("Multiple resumption")
+  set contTrace.resumed = true
+  handleEffects(resumeContTrace(contTrace, value))
+
+fun resumeContTrace(contTrace, value) =
+  let cont = contTrace.next
+  let handlerCont = contTrace.nextHandler
+  while
+    cont is FunctionContFrame then
+      set curEffect = null
+      set value = set stackDepth += 3 in cont.resume(value)
+      if curEffect !== null do
+        set value = curEffect
+      if value is EffectSig then
+        set
+          value.contTrace.last.next = cont.next
+          value.contTrace.lastHandler.nextHandler = handlerCont
+        if contTrace.last !== cont do
+          set value.contTrace.last = contTrace.last
+        if handlerCont !== null do
+          set value.contTrace.lastHandler = contTrace.lastHandler
+        return value
+      else
+        set cont = cont.next
+    handlerCont is HandlerContFrame then
+      set cont = handlerCont.next
+      set handlerCont = handlerCont.nextHandler
+    else
+      return value
+
+// js async
+object AsyncEffectMarker
+
+fun await(promise) =
+  mkEffect(AsyncEffectMarker, resume =>
+    fun continuation(value) =
+      let r = resume(value)
+      if curEffect !== null do
+        illegalEffect("in exported async function")
+      r
+    promise.then(continuation)
+  )
+
+fun toJsAsync(thunk) =
+  let r = enterHandleBlock(AsyncEffectMarker, thunk)
+  if curEffect !== null do
+    illegalEffect("in exported async function")
+  Promise.resolve(r)
+
+// stack safety
+mut val stackLimit = 0 // How deep the stack can go before heapifying the stack
+mut val stackDepth = 0
+mut val stackHandler = null
+mut val stackResume = null
+
+object StackDelayHandler with
+  fun delay() = mkEffect of this, k =>
+    set stackResume = k
+
+fun checkDepth() =
+  if stackDepth >= stackLimit && stackHandler !== null then
+    // this is a tail call to effectful function
+    stackHandler.delay()
+  else
+    ()
+
+fun runStackSafe(limit, f) =
+  set stackLimit = limit in...
+  set stackDepth = 1 in...
+  set stackHandler = StackDelayHandler in...
+  let result = enterHandleBlock(StackDelayHandler, f)
+  if curEffect !== null do
+    throw new Error("Effect crossed through stack safe boundary")
+  while stackResume !== null do
+    let saved = stackResume
+    set
+      stackResume = null
+      stackDepth = 1
+      result = saved(())
+    if curEffect !== null do
+      throw new Error("Effect crossed through stack safe boundary")
+  result
+
+class Int31(v) with
+  fun zext() = bitand(v, bitnot(shl(1, 31))) as Int
+  fun sext() = bitor(v, shl(1, 31)) as Int
+
+fun plus_impl(lhs, rhs) = if lhs is
+  Int31 and rhs is Int31 then lhs + rhs
+  else unreachable

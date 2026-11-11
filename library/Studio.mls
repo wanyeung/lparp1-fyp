@@ -1,0 +1,17 @@
+import "./Render.mjs"
+
+// These functions construct values in compiled MLscript, not comment metadata.
+// IDs are stable keys for provenance. Child-list order is document order.
+module Studio with
+  fun CreateGroup(id, title, children) = ["group", id, title, children]
+  fun CreateCell(id, title, headers, rows) = ["table", id, title, headers, rows]
+  fun CreatCell(id, title, headers, rows) = CreateCell(id, title, headers, rows)
+  fun DeriveCell(id, title, sourceTable, headers, rows) = ["derived", id, title, headers, rows, sourceTable]
+  fun CreateText(id, title, text) = ["text", id, title, text]
+  fun BarChart(id, title, sourceTable, x, y) = ["bar", id, title, sourceTable, x, y]
+  fun PieChart(id, title, sourceTable, x, y) = ["pie", id, title, sourceTable, x, y]
+  fun LineChart(id, title, sourceTable, x, yColumns) = ["line", id, title, sourceTable, x, yColumns]
+  fun Display(root) = Render.render(root)
+  fun Model(root) = Render.model(root)
+  fun DisplayOrdered(root, order) = Render.render(root, order)
+  fun ModelOrdered(root, order) = Render.model(root, order)

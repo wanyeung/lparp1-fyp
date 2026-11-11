@@ -1,0 +1,78 @@
+import "../../../library/Studio.mls"
+open Studio
+
+module CoolingExperiment with
+  // SYNTHETIC ILLUSTRATIVE DEMO INPUTS: not actual experimental measurements.
+  // Prepared in this source, not imported from a CSV or a live sensor.
+  // Edit these assumptions; time is in minutes and temperature in degrees C.
+  val ambientTemperatureC = 22
+  val initialTemperatureC = 85
+  val coolingCoefficientPerMinute = 0.10
+  val excludeSensorErrors = true
+
+  // Columns: time_min, observed_C, sensor_error, documentation.
+  // The single flagged row models a documented transient probe disconnection.
+  // This is a synthetic annotation, not an inferred statistical outlier flag.
+  val measurements = [
+    [0, 80.2, false, "Start reading; synthetic prepared input"],
+    [2, 73.3, false, "No documented sensor error"],
+    [4, 64.5, false, "No documented sensor error"],
+    [6, 56.8, false, "No documented sensor error"],
+    [8, 50.5, false, "No documented sensor error"],
+    [10, 90.0, true, "Synthetic sensor log: transient probe disconnection"],
+    [12, 42.1, false, "No documented sensor error"],
+    [14, 38.6, false, "No documented sensor error"],
+    [16, 35.7, false, "No documented sensor error"],
+    [18, 33.5, false, "No documented sensor error"],
+    [20, 31.6, false, "No documented sensor error"]
+  ]
+
+  // Newton cooling assumes constant ambient temperature and a fixed positive k.
+  // T(t) = ambient + (initial - ambient) * exp(-k * t).
+  fun predictedTemperatureC(timeMinutes) = ambientTemperatureC + (initialTemperatureC - ambientTemperatureC) * Math.exp(-coolingCoefficientPerMinute * timeMinutes)
+  fun residualC(row) = row.1 - predictedTemperatureC(row.0)
+  fun retainedRows(excludeFlagged) = measurements.filter(row => if excludeFlagged then row.2 == false else true)
+  fun squaredErrorTotal(rows) = rows.reduce((total, row) => total + residualC(row) * residualC(row), 0)
+  fun absoluteErrorTotal(rows) = rows.reduce((total, row) => total + Math.abs(residualC(row)), 0)
+  // Both policies retain the unflagged time-zero row in this prepared dataset.
+  fun rmseC(rows) = Math.sqrt(squaredErrorTotal(rows) / rows.length)
+  fun maeC(rows) = absoluteErrorTotal(rows) / rows.length
+  fun meanResidualC(rows) = rows.reduce((total, row) => total + residualC(row), 0) / rows.length
+
+  val selectedRows = retainedRows(excludeSensorErrors)
+  val unflaggedRows = retainedRows(true)
+  val comparisonRows = selectedRows.map(row => [row.0, row.1, predictedTemperatureC(row.0), residualC(row), Math.abs(residualC(row)), row.2])
+  val policyLabel = if excludeSensorErrors then "Exclude only documented sensor errors" else "Retain every prepared reading"
+
+  val purpose = CreateText("cooling-purpose", "Engineering student: cooling measurements vs theory", "Synthetic educational reproduction of case02.pdf. Compare a prepared measurement dataset against Newton cooling, then change model assumptions, a raw observed temperature, or the documented-error exclusion rule. Green assumption and raw-reading cells are editable; the raw temperature chart is draggable. These are illustrative demo inputs, not live or experimental data; no CSV has been imported.")
+  val assumptions = CreateCell("cooling-assumptions", "Editable model and processing assumptions", ["Parameter", "Value", "Unit or rule"], [
+    ["ambientTemperatureC", ambientTemperatureC, "degrees C; constant ambient"],
+    ["initialTemperatureC", initialTemperatureC, "degrees C at time zero; specified, not fitted"],
+    ["coolingCoefficientPerMinute", coolingCoefficientPerMinute, "1/min; use a positive value"],
+    ["excludeSensorErrors", excludeSensorErrors, "Exclude only rows with sensor_error = true"],
+    ["Prepared readings", measurements.length, "rows"],
+    ["Retained readings", selectedRows.length, "rows"],
+    ["Excluded readings", measurements.length - selectedRows.length, "rows"]
+  ])
+  val processing = CreateText("cooling-processing", "Visible processing and interpretation", "Rule: " + policyLabel + ". Filtering never changes the raw table and never removes readings merely for large residuals. The model is evaluated at each retained measurement time; no interpolation, smoothing, parameter fitting, or sensor correction is applied. Residual = observed minus predicted, in degrees C; a positive residual means the observation is hotter than the model. The overlay connects retained sample points, so a line across a missing reading is not an imputed measurement. Edit a green raw cell or drag the raw-temperature bar to patch the measurement literal; computed comparison and metric tables are read-only with source links.")
+
+  val rawTable = CreateCell("cooling-raw", "Prepared measurements — SYNTHETIC demo inputs (green cells are editable)", ["time_min", "observed_C", "sensor_error", "documentation"], measurements)
+  val rawTemperatureChart = BarChart("cooling-raw-chart", "Raw observed temperatures (drag a green bar to edit the reading)", rawTable, "time_min", "observed_C")
+  val comparisonTable = DeriveCell("cooling-comparison", "Retained observations and Newton predictions", rawTable, ["time_min", "Observed_C", "Predicted_C", "Residual_C", "Absolute_error_C", "sensor_error"], comparisonRows)
+  val overlay = LineChart("cooling-overlay", "Measured vs predicted temperature (minutes; degrees C)", comparisonTable, "time_min", ["Observed_C", "Predicted_C"])
+
+  // Compute both policies to expose the effect of excluding the documented error.
+  // Metrics use unrounded residuals; no precomputed outputs are stored here.
+  val errorMetrics = DeriveCell("cooling-errors", "Computed residual metrics and processing sensitivity", rawTable, ["Policy", "Retained_n", "Excluded_n", "RMSE_C", "MAE_C", "Mean_residual_C"], [
+    ["Current: " + policyLabel, selectedRows.length, measurements.length - selectedRows.length, rmseC(selectedRows), maeC(selectedRows), meanResidualC(selectedRows)],
+    ["All prepared readings", measurements.length, 0, rmseC(measurements), maeC(measurements), meanResidualC(measurements)],
+    ["Exclude documented sensor errors", unflaggedRows.length, measurements.length - unflaggedRows.length, rmseC(unflaggedRows), maeC(unflaggedRows), meanResidualC(unflaggedRows)]
+  ])
+  val metricNotes = CreateText("cooling-metric-notes", "How to explain discrepancies", "RMSE = sqrt(mean(residual squared)); MAE = mean(abs(residual)); mean residual shows signed bias. All three use degrees C and describe only the retained sample times. Changing ambient temperature or k recomputes predictions and metrics; changing the exclusion flag changes which observations contribute. A lower error after removing the documented fault is not evidence that Newton cooling is universally valid. Real experiments could also differ because ambient temperature varies, heat loss is not lumped, or sensors are noisy; those mechanisms are not identified by this synthetic example.")
+
+  val contextGroup = CreateGroup("cooling-context", "Model assumptions and reproducibility", [purpose, assumptions, processing])
+  val evidenceGroup = CreateGroup("cooling-evidence", "Raw-to-derived comparison with provenance", [rawTable, rawTemperatureChart, comparisonTable, overlay, errorMetrics, metricNotes])
+  val report = CreateGroup("cooling-report", "Cooling experiment — synthetic educational analysis", [contextGroup, evidenceGroup])
+  val displayOrder = ["cooling-purpose","cooling-assumptions","cooling-processing","cooling-raw","cooling-raw-chart","cooling-overlay","cooling-comparison","cooling-errors","cooling-metric-notes"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

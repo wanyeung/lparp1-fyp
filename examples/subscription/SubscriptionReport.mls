@@ -1,0 +1,40 @@
+import "../../library/Studio.mls"
+import "./Subscription.mls"
+open Studio
+
+// Synthetic illustrative demo inputs; not live market or experimental data.
+// This report demonstrates the combined Studio workspace:
+//   * green cells are source literals, including literals in Subscription.mls;
+//   * dragging a green bar edits the y-column literal and rebuilds;
+//   * grey cells and points are computed and link back to the literals they use.
+module SubscriptionReport with
+  val context = CreateText("subscription-context", "Retail manager: subscription price review", "Inspired by case04.pdf: an analyst shares a subscription model with an operations manager considering a price change from $60 to $75. This executable demo compares both assumptions before a pilot decision. All inputs are synthetic illustrative assumptions; a monthly subscription period is assumed.")
+
+  val workflow = CreateText("subscription-workflow", "Edit source literals from either side", "Edit a green assumption cell in the document view, or edit the named literal in Subscription.mls. Both paths patch the same source, save the module, recompile with hkmc2 and refresh this report. Drag a green bar in the assumption chart to change the corresponding value. Grey computed values are read-only and expose the literals they depend on.")
+
+  val assumptions = CreateCell("subscription-assumptions", "Source assumptions (green cells are editable)", Subscription.assumptionHeaders, Subscription.assumptionRows)
+
+  val assumptionsChart = BarChart("subscription-assumptions-chart", "Assumption values (drag a green bar to edit its source literal)", assumptions, "Assumption", "Value")
+
+  val formula = CreateText("subscription-formula", "Contribution definition and units", "Monthly contribution per subscriber = subscription price (USD/subscriber/month) - drink cost (USD/drink) * redemptions (drinks/subscriber/month). Both price scenarios use the same expected redemptions and cost. Contribution is not net profit; fixed overhead, taxes, acquisition costs and payment fees are excluded. No price-driven demand or redemption response is modeled.")
+
+  val comparison = DeriveCell("subscription-comparison", "Baseline versus proposed price at expected redemptions", assumptions, Subscription.comparisonHeaders, Subscription.comparisonRows)
+
+  val comparisonChart = BarChart("subscription-comparison-chart", "Contribution at expected redemptions by subscription price", comparison, "Price (USD/subscriber/month)", "Contribution (USD/subscriber/month)")
+
+  val change = DeriveCell("subscription-change", "Effect of the price change at equal redemptions", assumptions, Subscription.changeHeaders, Subscription.changeRows)
+
+  val sensitivity = DeriveCell("subscription-sensitivity", "Computed redemption sensitivity", assumptions, Subscription.sensitivityHeaders, Subscription.sensitivityRows)
+
+  val sensitivityChart = LineChart("subscription-sensitivity-chart", "Overlay: baseline and proposed contribution versus redemptions", sensitivity, "Redemptions (drinks/subscriber/month)", ["Baseline contribution (USD/subscriber/month)", "Proposed contribution (USD/subscriber/month)"])
+
+  val interpretation = CreateText("subscription-interpretation", "How to use the sensitivity", "The two lines are calculated at every displayed redemption count, not independently entered outputs. Negative contribution is retained: each additional redemption reduces contribution by the assumed drink cost. Changing price or proposed price moves its corresponding line; changing drink cost changes both slopes. This is an illustrative arithmetic scenario, not a pilot forecast or recommendation.")
+
+  val inputGroup = CreateGroup("subscription-inputs", "1. Review assumptions and edit the source", [context, workflow, assumptions, assumptionsChart])
+  val contributionGroup = CreateGroup("subscription-contribution", "2. Compare the pilot price scenarios", [formula, comparison, comparisonChart, change])
+  val sensitivityGroup = CreateGroup("subscription-redemptions", "3. Inspect redemption sensitivity", [sensitivity, sensitivityChart, interpretation])
+  val report = CreateGroup("subscription-report", "Subscription pilot: source assumptions to computed contribution", [inputGroup, contributionGroup, sensitivityGroup])
+
+  val displayOrder = ["subscription-context", "subscription-workflow", "subscription-assumptions", "subscription-assumptions-chart", "subscription-formula", "subscription-comparison", "subscription-comparison-chart", "subscription-change", "subscription-sensitivity", "subscription-sensitivity-chart", "subscription-interpretation"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

@@ -1,0 +1,13 @@
+import "../../../library/Studio.mls"
+import "./shared/Portfolio.mls"
+open Studio
+
+module Summary with
+  // Synthetic illustrative demo, not live market data or investment advice.
+  // Charts, figures, inputs, and calculation logic are imported, never copied here.
+  // Full source/derived tables appear in Analysis.mls; this audience sees the brief.
+  val performance = CreateGroup("c03-summary-performance", "Cumulative performance and ending figures", [Portfolio.cumulativeChart, Portfolio.endingFiguresTable])
+  val report = CreateGroup("c03-summary-report", "Portfolio comparison — manager meeting brief", [Portfolio.summaryNote, performance])
+  val displayOrder = ["c03-summary-note", "c03-cumulative-chart", "c03-ending-figures"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

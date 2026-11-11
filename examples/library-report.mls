@@ -1,0 +1,41 @@
+import "../library/Studio.mls"
+open Studio
+
+module LibraryReport with
+  // These are real computed values, not @table comment blocks.
+  val engineeringCount = 1 + 1
+  val designBudget = 15000 * 2
+
+  val teams = CreateCell("teams", "Teams", ["team", "headcount"], [
+    ["Engineering", engineeringCount],
+    ["Design", 1],
+    ["Operations", 1]
+  ])
+
+  // CreatCell is an alias for CreateCell, so both spellings work.
+  val projects = CreatCell("projects", "Projects", ["project", "budget"], [
+    ["Compiler", 50000],
+    ["Document view", designBudget],
+    ["Testing", 40000]
+  ])
+
+  val totals = CreateCell("totals", "Budget totals", ["metric", "amount"], [
+    ["Allocated", 50000 + designBudget + 40000],
+    ["Remaining", 120000 - (50000 + designBudget + 40000)]
+  ])
+
+  // Passing the table value retains the chart's provenance link.
+  val headcountChart = BarChart("headcount-chart", "Headcount by team", teams, "team", "headcount")
+  val budgetChart = PieChart("budget-chart", "Budget allocation", projects, "project", "budget")
+
+  // Child-list order controls the HTML document order.
+  val people = CreateGroup("people", "People", [teams, headcountChart])
+  val finance = CreateGroup("finance", "Finance", [projects, budgetChart, totals])
+  val report = CreateGroup("report", "MLscript Studio report", [people, finance])
+
+  // Studio can rewrite this literal when you drag siblings within a group.
+  val displayOrder = ["teams", "headcount-chart", "projects", "budget-chart", "totals"]
+
+  // Conventional export read by the build command. Evaluating this calls Display.
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)
