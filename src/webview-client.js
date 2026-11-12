@@ -87,6 +87,9 @@ function render() {
     root.append(el('p', { class: 'muted', text: 'Open a .mls file.' }));
     return;
   }
+  if (model.compiler === 'hkmc2') {
+    root.append(el('p', { class: 'muted', text: 'hkmc2 computed these values from the let bindings.' }));
+  }
   if (kind === 'info') root.append(renderInfo());
   else if (kind === 'chart') root.append(renderCharts());
   else root.append(renderGrid());

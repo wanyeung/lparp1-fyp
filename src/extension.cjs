@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const path = require('path');
+const { spawn } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 
@@ -39,6 +40,13 @@ function activate(context) {
   /** @type {string | undefined} */
   let currentUri;
   let timer;
+  let compileTimer;
+  let compiling = false;
+  let queuedCompile = null;
+  /** @type {{ hash: string, values: Record<string, unknown> | null, errors: string[] } | undefined} */
+  let compiled;
+  const compiler = startCompiler(context.extensionPath);
+  context.subscriptions.push({ dispose: () => compiler.stop() });
 
   function documentByUri(uri) {
     if (!uri) return undefined;
@@ -105,9 +113,11 @@ function activate(context) {
       return;
     }
     currentUri = document.uri.toString();
-    const projected = model.parseStudio(document.getText(), {
+    const text = document.getText();
+    const projected = model.parseStudio(text, {
       fallbackTitle: path.basename(document.fileName),
     });
+    if (compiled && compiled.hash === text && compiled.values) model.overlayCompiled(projected, compiled.values);
     const markers = projected.errors.map((error) => new vscode.Diagnostic(
       new vscode.Range(
         document.positionAt(error.start),
@@ -116,7 +126,15 @@ function activate(context) {
       error.message,
       vscode.DiagnosticSeverity.Error,
     ));
+    if (compiled && compiled.hash === text && compiled.errors.length) {
+      markers.push(new vscode.Diagnostic(
+        new vscode.Range(document.positionAt(0), document.positionAt(0)),
+        `hkmc2: ${compiled.errors[0]}`,
+        vscode.DiagnosticSeverity.Warning,
+      ));
+    }
     diagnostics.set(document.uri, markers);
+    if (!compiled || compiled.hash !== text) scheduleCompile(text);
     const editor = vscode.window.visibleTextEditors.find((item) => item.document.uri.toString() === currentUri);
     const offset = editor ? document.offsetAt(editor.selection.active) : 0;
     open.forEach((panel) => panel.webview.postMessage({ type: 'state', model: projected, cursor: offset }));
@@ -126,6 +144,44 @@ function activate(context) {
     clearTimeout(timer);
     const wait = vscode.workspace.getConfiguration('mlscriptStudio').get('debounceMs');
     timer = setTimeout(() => { refresh(); }, typeof wait === 'number' ? wait : 120);
+  }
+
+  let compileHash;
+  function scheduleCompile(text) {
+    if (compileHash === text) return;
+    compileHash = text;
+    clearTimeout(compileTimer);
+    compileTimer = setTimeout(() => { runCompile(text); }, 200);
+  }
+
+  function runCompile(text) {
+    queuedCompile = text;
+    if (compiling) return;
+    compiling = true;
+    status.text = '$(sync~spin) MLscript';
+    const step = () => {
+      const source = queuedCompile;
+      queuedCompile = null;
+      if (source == null) {
+        compiling = false;
+        status.text = '$(check) MLscript';
+        return;
+      }
+      compiler.request(source).then((result) => {
+        compiled = {
+          hash: source,
+          values: result && result.ok ? result.values : null,
+          errors: result && result.ok ? [] : [result && result.errors && result.errors[0] || 'hkmc2 did not return a result'],
+        };
+        refresh();
+        step();
+      }).catch((error) => {
+        compiled = { hash: source, values: null, errors: [error instanceof Error ? error.message : String(error)] };
+        refresh();
+        step();
+      });
+    };
+    step();
   }
 
   async function handle(message) {
@@ -211,6 +267,61 @@ function activate(context) {
   );
 
   updateStatus();
+}
+
+function startCompiler(extensionPath) {
+  let child;
+  let buffer = '';
+  let sequence = 0;
+  /** @type {Map<number, (message: any) => void>} */
+  const pending = new Map();
+
+  function launch() {
+    child = spawn(process.execPath, ['--stack-size=16384', path.join(extensionPath, 'src', 'hkmc2.mjs')], {
+      cwd: extensionPath,
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    child.stdout.on('data', (chunk) => {
+      buffer += chunk.toString();
+      let newline = buffer.indexOf('\n');
+      while (newline >= 0) {
+        const line = buffer.slice(0, newline);
+        buffer = buffer.slice(newline + 1);
+        newline = buffer.indexOf('\n');
+        if (!line.trim()) continue;
+        try {
+          const message = JSON.parse(line);
+          const resolve = pending.get(message.id);
+          if (resolve) {
+            pending.delete(message.id);
+            resolve(message);
+          }
+        } catch (error) {
+          /* compiler chatter is not a result */
+        }
+      }
+    });
+    child.on('exit', () => {
+      for (const resolve of pending.values()) resolve({ ok: false, errors: ['hkmc2 stopped'] });
+      pending.clear();
+      child = undefined;
+    });
+  }
+
+  return {
+    request(source) {
+      if (!child || child.killed) launch();
+      const id = sequence + 1;
+      sequence = id;
+      return new Promise((resolve) => {
+        pending.set(id, resolve);
+        child.stdin.write(`${JSON.stringify({ id, root: extensionPath, source })}\n`);
+      });
+    },
+    stop() {
+      if (child && !child.killed) child.kill();
+    },
+  };
 }
 
 function deactivate() {}

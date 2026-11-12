@@ -1,8 +1,8 @@
 {
   "name": "mlscript-studio",
   "displayName": "MLscript Studio",
-  "description": "Code, table, and chart views for MLscript. The .mls file stays the source of truth.",
-  "version": "0.6.4",
+  "description": "Code, table, and chart views for MLscript. Computed values come from the bundled hkmc2 compiler.",
+  "version": "0.6.7",
   "publisher": "mlscript-studio",
   "license": "MIT",
   "private": true,
@@ -93,7 +93,7 @@
     ]
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --stack-size=16384 --test test/*.test.mjs",
     "preview": "node scripts/preview.mjs"
   }
 }

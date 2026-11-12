@@ -894,3 +894,40 @@ class ExprParser {
     return Number(match[0]);
   }
 }
+
+export function overlayCompiled(model, values) {
+  if (!model || !values) return model;
+  for (const table of model.tables || []) {
+    const value = values[table.id];
+    if (value == null) continue;
+    if (table.layout === 'records' && Array.isArray(value)) {
+      table.rows.forEach((row, index) => {
+        const item = value[index];
+        if (!item || typeof item !== 'object') return;
+        for (const cell of row.cells) applyCompiled(cell, item[cell.key]);
+      });
+    } else if (table.layout === 'object' && typeof value === 'object' && !Array.isArray(value)) {
+      for (const row of table.rows) {
+        const cell = row.cells.find((candidate) => candidate.key === 'value');
+        if (cell && row.fieldKey) applyCompiled(cell, value[row.fieldKey]);
+      }
+    }
+  }
+  for (const chart of model.charts || []) {
+    const table = (model.tables || []).find((candidate) => candidate.id === chart.source);
+    if (!table || !Array.isArray(chart.bars)) continue;
+    chart.bars.forEach((bar, index) => {
+      const cell = table.rows[index]?.cells.find((candidate) => candidate.key === chart.y);
+      if (!cell || cell.editable || cell.numeric == null) return;
+      bar.value = cell.numeric;
+    });
+  }
+  model.compiler = 'hkmc2';
+  return model;
+}
+
+function applyCompiled(cell, raw) {
+  if (!cell || cell.editable || typeof raw !== 'number' || !Number.isFinite(raw)) return;
+  cell.numeric = raw;
+  cell.display = formatNumber(raw);
+}

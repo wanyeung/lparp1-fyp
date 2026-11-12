@@ -79,12 +79,16 @@ test('editable cells point at their own literal text', () => {
 
 test('student totals are shared formulas and quiz scores are literals', () => {
   const { model } = load('student-learning.mls');
-  assert.equal(cell(model, 'grades', 0, 'total').display, '78');
-  assert.equal(cell(model, 'grades', 1, 'total').display, '78');
-  assert.equal(cell(model, 'grades', 2, 'total').display, '91.4');
+  assert.deepEqual(
+    [0, 1, 2, 3, 4, 5].map((row) => cell(model, 'grades', row, 'total').display),
+    ['78.6', '73.65', '91.2', '61.35', '80.3', '47.65'],
+  );
+  assert.equal(cell(model, 'grades', 5, 'passMargin').display, '-12.35');
   assert.equal(cell(model, 'grades', 0, 'total').editable, false);
   assert.equal(cell(model, 'students', 0, 'quiz').editable, true);
   assert.equal(cell(model, 'students', 0, 'quiz').display, '80');
+  assert.equal(field(model, 'weightTotal', 'Sum').display, '100');
+  assert.equal(field(model, 'cohort', 'Mean').display, '72.125');
   assert.ok(cell(model, 'grades', 0, 'total').refs.some((ref) => ref.path === 'students.0.quiz'));
   assert.equal(chart(model, 'totals').bars[0].editable, false);
   assert.equal(chart(model, 'quizzes').bars[0].editable, true);
@@ -94,12 +98,13 @@ test('student totals are shared formulas and quiz scores are literals', () => {
     'Grade report',
     'Weight policy',
     'Computed totals',
+    'Class summary',
     'Score sheet',
     'Raw scores',
-    'How a student edits',
+    'Pass mark',
   ]);
   const report = model.documents.find((document) => document.id === 'report');
-  assert.deepEqual(report.blocks.map((block) => block.id), ['weight-policy', 'computed-totals']);
+  assert.deepEqual(report.blocks.map((block) => block.id), ['weight-policy', 'computed-totals', 'class-summary']);
 });
 
 test('editing a quiz literal recomputes the grade and leaves the formula in place', () => {
@@ -109,13 +114,14 @@ test('editing a quiz literal recomputes the grade and leaves the formula in plac
   const patched = applyReplacement(source, quiz.start, quiz.end, '100');
   assert.equal(patched.error, undefined);
   assert.ok(patched.source.includes('quiz: 100'));
-  assert.ok(patched.source.includes('students.0.quiz * weights.quiz'));
+  assert.ok(patched.source.includes('students.0.quiz * policy.quiz'));
   const after = parseStudio(patched.source);
   assert.deepEqual(after.errors, []);
   assert.equal(cell(after, 'students', 0, 'quiz').display, '100');
-  assert.equal(cell(after, 'grades', 0, 'total').display, '82');
+  assert.equal(cell(after, 'grades', 0, 'total').display, '81.6');
   assert.equal(cell(after, 'grades', 0, 'total').editable, false);
   assert.equal(cell(after, 'students', 1, 'quiz').display, '60');
+  assert.equal(field(after, 'cohort', 'Mean').display, '72.625');
 });
 
 test('sorting and filtering do not reorder the source rows', () => {
@@ -124,77 +130,101 @@ test('sorting and filtering do not reorder the source rows', () => {
   const sorted = viewRows(rows, { column: 'name', direction: 'desc' });
   const filtered = viewRows(rows, { filter: 'ben' });
   assert.equal(rows[0], table(model, 'students').rows[0]);
-  assert.deepEqual(sorted.map((row) => row.cells.find((item) => item.key === 'name').display), ['Cho', 'Ben', 'Ada']);
+  assert.deepEqual(sorted.map((row) => row.cells.find((item) => item.key === 'name').display), ['Fay', 'Eli', 'Dee', 'Cho', 'Ben', 'Ada']);
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0].cells.find((item) => item.key === 'name').display, 'Ben');
-  assert.equal(rows.length, 3);
+  assert.equal(rows.length, 6);
 });
 
 test('cashflow nets, balances, and category check share the monthly inputs', () => {
   const { source, model } = load('financial-analysis.mls');
   assert.deepEqual(
-    [0, 1, 2].map((row) => cell(model, 'cashflow', row, 'net').display),
-    ['1100', '1400', '900'],
+    [0, 1, 2].map((row) => cell(model, 'statement', row, 'net').display),
+    ['4825', '5620', '3200'],
   );
   assert.deepEqual(
-    [0, 1, 2].map((row) => cell(model, 'cashflow', row, 'balance').display),
-    ['3100', '4500', '5400'],
+    [0, 1, 2].map((row) => cell(model, 'statement', row, 'cash').display),
+    ['8825', '14445', '17645'],
   );
-  assert.equal(cell(model, 'cashflow', 0, 'net').editable, false);
+  assert.equal(cell(model, 'statement', 0, 'net').editable, false);
   assert.equal(table(model, 'months').rows.length, 12);
-  assert.equal(cell(model, 'cashflow', 11, 'balance').display, '15000');
-  assert.equal(cell(model, 'reconciled', 0, 'categoryTotal').display, '46600');
-  assert.equal(cell(model, 'reconciled', 0, 'monthTotal').display, '46600');
+  assert.equal(cell(model, 'statement', 11, 'cash').display, '60020');
+  assert.equal(cell(model, 'schedule', 0, 'interest').display, '144');
+  assert.equal(cell(model, 'schedule', 11, 'balance').display, '7263.76');
+  assert.equal(field(model, 'year', 'Tax').display, '46680');
+  assert.equal(field(model, 'year', 'Interest').display, '1263.76');
+  assert.equal(field(model, 'year', 'Principal Paid').display, '10736.24');
+  assert.equal(field(model, 'year', 'Emergency Months').display, '3.665');
+  assert.equal(cell(model, 'reconciled', 0, 'categoryTotal').display, '196500');
+  assert.equal(cell(model, 'reconciled', 0, 'livingTotal').display, '196500');
   assert.equal(chart(model, 'net').bars.every((bar) => bar.editable === false), true);
-  assert.equal(chart(model, 'balance').type, 'line');
-  assert.equal(chart(model, 'income').bars.every((bar) => bar.editable), true);
+  assert.equal(chart(model, 'cash').type, 'line');
+  assert.equal(chart(model, 'salary').bars.every((bar) => bar.editable), true);
 
-  const income = cell(model, 'months', 1, 'income');
-  const patched = parseStudio(applyReplacement(source, income.start, income.end, '5000').source);
-  assert.equal(cell(patched, 'cashflow', 1, 'net').display, '2200');
-  assert.equal(cell(patched, 'cashflow', 1, 'balance').display, '5300');
-  assert.equal(cell(patched, 'cashflow', 2, 'balance').display, '6200');
-  assert.equal(cell(patched, 'cashflow', 11, 'balance').display, '15800');
-  assert.equal(field(model, 'assumptions', 'Opening').editable, true);
+  const side = cell(model, 'months', 1, 'side');
+  const patched = parseStudio(applyReplacement(source, side.start, side.end, '2000').source);
+  assert.equal(cell(patched, 'statement', 1, 'net').display, '6300');
+  assert.equal(cell(patched, 'statement', 1, 'cash').display, '15125');
+  assert.equal(cell(patched, 'statement', 2, 'cash').display, '18325');
+  assert.equal(cell(patched, 'statement', 11, 'cash').display, '60700');
+  assert.equal(field(model, 'policy', 'Opening Cash').editable, true);
 });
 
-test('café contribution and profit read the same product literals', () => {
+test('café contribution and break-even read the same product literals', () => {
   const { source, model } = load('business-model.mls');
   assert.deepEqual(
-    [0, 1, 2].map((row) => cell(model, 'contributions', row, 'contribution').display),
-    ['3120', '1760', '780'],
+    [0, 1, 2, 3, 4].map((row) => cell(model, 'lines', row, 'contribution').display),
+    ['35000', '63000', '9672', '21600', '13003.2'],
   );
-  assert.equal(cell(model, 'contributions', 0, 'contribution').editable, false);
-  assert.equal(cell(model, 'summary', 0, 'revenue').display, '8120');
-  assert.equal(cell(model, 'summary', 0, 'variableCost').display, '2460');
-  assert.equal(cell(model, 'summary', 0, 'profit').display, '1660');
+  assert.equal(cell(model, 'lines', 0, 'contribution').editable, false);
+  assert.equal(field(model, 'result', 'Revenue').display, '212460');
+  assert.equal(field(model, 'result', 'Ingredient Cost').display, '70184.8');
+  assert.equal(field(model, 'result', 'Card Fees').display, '3824.28');
+  assert.equal(field(model, 'result', 'Contribution').display, '138450.92');
+  assert.equal(field(model, 'result', 'Fixed Cost').display, '93000');
+  assert.equal(field(model, 'result', 'Profit').display, '45450.92');
+  assert.equal(field(model, 'result', 'Break Even Revenue').display, '142713.245');
+  assert.equal(field(model, 'result', 'Margin Of Safety').display, '69746.755');
+  assert.equal(field(model, 'result', 'Target Revenue').display, '181077.02');
+  assert.equal(cell(model, 'breakEven', 0, 'breakEvenUnits').display, '940.405');
+  assert.equal(cell(model, 'coverage', 0, 'revenue').display, '142713.245');
   assert.equal(chart(model, 'units').bars[2].editable, true);
   assert.equal(chart(model, 'contribution').bars[2].editable, false);
+  assert.equal(chart(model, 'overheads').bars.every((bar) => bar.editable), true);
+  assert.equal(chart(model, 'break-even-units').bars.every((bar) => bar.editable === false), true);
 
   const units = cell(model, 'products', 2, 'units');
   const patched = parseStudio(applyReplacement(source, units.start, units.end, '0').source);
-  assert.equal(cell(patched, 'contributions', 2, 'contribution').display, '0');
-  assert.equal(cell(patched, 'summary', 0, 'profit').display, '880');
+  assert.equal(cell(patched, 'lines', 2, 'contribution').display, '0');
+  assert.equal(field(patched, 'result', 'Profit').display, '36129.92');
+  assert.equal(field(patched, 'result', 'Break Even Revenue').display, '138970.736');
 });
 
 test('lab means follow the trial literals and only the readings are editable', () => {
   const { model } = load('experiment-measurements.mls');
-  assert.equal(field(model, 'summary', 'Mean Length').display, formatNumber((102.4 + 101.8 + 103 + 102.1 + 102.7) / 5));
-  assert.equal(field(model, 'summary', 'Mean Temperature').display, formatNumber((21 + 21.2 + 21.1 + 20.9 + 21) / 5));
-  assert.equal(field(model, 'summary', 'Mean Length').editable, false);
-  assert.equal(field(model, 'summary', 'Mean Length').refs.length, 5);
+  assert.equal(field(model, 'meanK', 'Stiffness').display, '119.206');
+  assert.equal(field(model, 'meanK', 'Temperature').display, formatNumber((21 + 21.2 + 21.1 + 20.9 + 21 + 21.3) / 6));
+  assert.equal(field(model, 'spread', 'Variance').display, '12.588');
+  assert.equal(field(model, 'meanK', 'Stiffness').editable, false);
+  assert.equal(cell(model, 'fit', 0, 'residual').display, '0.185');
+  assert.equal(cell(model, 'points', 0, 'force').display, '0.491');
   assert.equal(chart(model, 'lengths').bars.every((bar) => bar.editable), true);
+  assert.equal(chart(model, 'stiffness').bars.every((bar) => bar.editable === false), true);
   assert.equal(chart(model, 'lengths').bars[0].decimals, 1);
-  assert.equal(cell(model, 'trials', 0, 'length').display, '102.4');
+  assert.equal(cell(model, 'trials', 0, 'length').display, '6.3');
 });
 
 test('speedup is baseline divided by the measured time', () => {
   const { model } = load('algorithm-benchmark.mls');
   assert.equal(cell(model, 'comparison', 0, 'speedup').display, '1');
   assert.equal(cell(model, 'comparison', 1, 'speedup').display, '15.5');
-  assert.equal(cell(model, 'comparison', 2, 'speedup').display, formatNumber(12400 / 300));
-  assert.equal(cell(model, 'comparison', 4, 'speedup').display, formatNumber(128000 / 1100));
-  assert.equal(cell(model, 'comparison', 5, 'speedup').display, '320');
+  assert.equal(cell(model, 'comparison', 2, 'speedup').display, '24.8');
+  assert.equal(cell(model, 'comparison', 3, 'speedup').display, formatNumber(12400 / 300));
+  assert.equal(cell(model, 'comparison', 5, 'speedup').display, formatNumber(128000 / 1100));
+  assert.equal(cell(model, 'comparison', 11, 'speedup').display, formatNumber(1350000 / 560));
+  assert.equal(cell(model, 'comparison', 11, 'perThousand').display, '5.6');
+  assert.equal(cell(model, 'scale', 0, 'growth').display, formatNumber(128000 / 12400));
+  assert.equal(cell(model, 'scale', 7, 'growth').display, formatNumber(560 / 420));
   assert.equal(chart(model, 'times').bars.every((bar) => bar.editable), true);
   assert.equal(chart(model, 'speedups').bars.every((bar) => bar.editable === false), true);
   assert.ok(cell(model, 'comparison', 1, 'speedup').refs.some((ref) => ref.path === 'runs.0.microseconds'));

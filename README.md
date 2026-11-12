@@ -21,11 +21,11 @@ Each file is one demonstration. It has two cases, and each case contains subcase
 
 | File | Scenario | Edit this | This stays read-only |
 | --- | --- | --- | --- |
-| `usecases/student-learning.mls` | Student learning, grade book | Weights and raw scores | Grade total |
-| `usecases/financial-analysis.mls` | Twelve-month cashflow | Income, expenses, opening balance | Net and running balance |
-| `usecases/business-model.mls` | Café unit economics | Price, units, variable cost, fixed cost | Contribution and profit |
-| `usecases/experiment-measurements.mls` | Spring-length measurements | Trial temperature and length | Mean temperature and mean length |
-| `usecases/algorithm-benchmark.mls` | Search-algorithm timings | Measured microseconds | Speedup against linear search |
+| `usecases/student-learning.mls` | Course grade book with a pass mark | Component scores, weights, pass mark | Weighted total, pass margin, class mean |
+| `usecases/financial-analysis.mls` | Household year with tax and a loan | Salary, side income, living costs, tax rate, loan terms, categories | Tax, cash balance, loan balance, emergency cover |
+| `usecases/business-model.mls` | Café break-even for one month | Price, units, ingredient cost, waste, overheads, card fee, target profit | Contribution, break-even revenue, and break-even units |
+| `usecases/experiment-measurements.mls` | Spring calibration and stiffness | Mass, raw length, temperature, zero offset | Force, stiffness, variance, residual |
+| `usecases/algorithm-benchmark.mls` | Search timings at three sizes | Measured microseconds | Speedup, time per thousand keys, tenfold growth |
 
 A document is a comment block (`// @document`) that picks tables, charts, and notes by id. The data lives in `let` bindings, so both documents change when one literal changes.
 
@@ -49,6 +49,8 @@ Requirements: desktop VS Code and Node.js 20 or newer. There is no install step 
 4. **MLscript: Open Use Case** lists the five demonstrations.
 
 The editor is the code. InfoView, GridView, and ChartView are three separate panels. Move the cursor into another `let` and all three follow it. ChartView has a menu of every chart in the file. Under the heading Chart type, a row of buttons switches that chart among bar, column, line, area, step, scatter, lollipop, pie, donut, and radar. Click a source chip to select that text in the editor.
+
+Computed numbers are not produced by the comment directives. After an edit, the extension runs the bundled hkmc2 compiler (`runtime/compiler/MLscript.mjs`, HKUST TACO hkmc2 at `1a86e1c`) on the same `let` bindings and shows that result. There is no Build button and no second document language. A table is a `let`. A chart comment only chooses which binding to draw. Authors do not write `CreateGroup`, `CreateCell`, `DeriveCell`, or `CreateText`.
 
 ```bash
 npm test

@@ -1,14 +1,20 @@
-// @studio Experimental measurements — spring length
-// Five trials from one caliper. The notebook case stores each reading.
-// The results case divides those readings into a length mean and a
-// temperature mean. Neither mean is typed in.
+// @studio Experimental measurements — spring stiffness
+// Six loads on one spring. The notebook records the raw caliper reading,
+// the room temperature, and the zero offset that has to come off every
+// reading. The analysis turns the corrected extension into a force, a
+// stiffness, and the residual against the mean stiffness.
 
 // @document Lab notebook
 // id: notebook
-// includes: document:length-series, document:temperature-log
+// includes: document:calibration, document:length-series, document:temperature-log
 // @enddocument
 
-// @document Length by trial
+// @document Calibration
+// id: calibration
+// includes: doc:calibration, table:setup
+// @enddocument
+
+// @document Raw extension
 // id: length-series
 // includes: doc:length-series, table:trials, chart:lengths
 // @enddocument
@@ -18,50 +24,70 @@
 // includes: doc:temperature-log, table:trials
 // @enddocument
 
-// @document Results
+// @document Analysis
 // id: results
-// includes: document:length-mean, document:temperature-mean
+// includes: document:forces, document:stiffness, document:residuals
 // @enddocument
 
-// @document Mean length
-// id: length-mean
-// includes: doc:length-mean, table:summary
+// @document Force and extension
+// id: forces
+// includes: doc:forces, table:points
 // @enddocument
 
-// @document Mean temperature
-// id: temperature-mean
-// includes: doc:temperature-mean, table:summary
+// @document Stiffness of each load
+// id: stiffness
+// includes: doc:stiffness, table:points, table:meanK, table:spread, chart:stiffness
 // @enddocument
 
-// @doc Five lengths from one caliper
+// @document Residual against the mean
+// id: residuals
+// includes: doc:residuals, table:fit
+// @enddocument
+
+// @doc Zero and gravity are typed once
+// id: calibration
+// The caliper reads 2 mm long, so every extension subtracts that offset.
+// Gravity is 9.81. Force in newtons is mass in grams, divided by 1000,
+// times gravity. Neither number is retyped on the trial rows.
+// @enddoc
+
+// @doc Six raw lengths
 // id: length-series
-// The lengths are 102.4, 101.8, 103.0, 102.1, and 102.7 millimetres.
-// Dragging a bar rewrites that trial's length literal. The mean length
-// follows and stays read-only.
+// The caliper readings are 6.3, 9.9, 14.4, 18.8, 22.2, and 26.5 millimetres
+// for 50, 100, 150, 200, 250, and 300 grams. Dragging a bar rewrites that
+// trial's length literal.
 // @enddoc
 
-// @doc Temperature is recorded, not plotted
+// @doc The room, recorded beside the length
 // id: temperature-log
-// Each trial also notes the room temperature: 21.0, 21.2, 21.1, 20.9,
-// and 21.0 degrees. Those cells are literals in the same rows as the
-// lengths. They are not on the length chart.
+// The temperatures are 21.0, 21.2, 21.1, 20.9, 21.0, and 21.3 degrees.
+// Their mean is 21.083. They sit on the same rows as the lengths and they
+// are not on the length chart.
 // @enddoc
 
-// @doc Mean of the five lengths
-// id: length-mean
-// The mean length adds the five readings and divides by 5, which is 102.4.
-// There is no literal to edit on this subcase. Follow a source chip back
-// to the trial it uses.
+// @doc What the load actually did
+// id: forces
+// Corrected extension is the raw length minus 2. The six extensions are
+// 4.3, 7.9, 12.4, 16.8, 20.2, and 24.5 millimetres. The forces are 0.491,
+// 0.981, 1.472, 1.962, 2.453, and 2.943 newtons.
 // @enddoc
 
-// @doc Mean of the five temperatures
-// id: temperature-mean
-// The mean temperature is the same kind of formula over the temperature
-// column, and it is 21.04. Changing a trial temperature updates this
-// number without a second place to type it.
+// @doc Newtons per metre, then how far the six disagree
+// id: stiffness
+// Stiffness is force divided by extension in metres. The six estimates are
+// 114.07, 124.177, 118.669, 116.786, 121.411, and 120.122. Their mean is
+// 119.206. The variance, the average squared distance from that mean, is
+// 12.588. The stiffness chart reads the formulas, so it cannot be dragged.
 // @enddoc
 
-// @chart Length by trial
+// @doc Measured extension minus the extension the mean predicts
+// id: residuals
+// Predicted extension is force divided by the mean stiffness. The residuals
+// are 0.185, -0.329, 0.056, 0.341, -0.374, and -0.188 millimetres. A later
+// load that does not lie near zero residual is the one to remeasure.
+// @enddoc
+
+// @chart Raw length
 // id: lengths
 // type: bar
 // source: trials
@@ -69,16 +95,103 @@
 // y: length
 // @endchart
 
+// @chart Stiffness
+// id: stiffness
+// type: column
+// source: points
+// x: trial
+// y: stiffness
+// @endchart
+
 module ExperimentMeasurements with
+  let setup = mut { offset: 2, gravity: 9.81 }
+
   let trials = [
-    mut { trial: 1, temperature: 21.0, length: 102.4 },
-    mut { trial: 2, temperature: 21.2, length: 101.8 },
-    mut { trial: 3, temperature: 21.1, length: 103.0 },
-    mut { trial: 4, temperature: 20.9, length: 102.1 },
-    mut { trial: 5, temperature: 21.0, length: 102.7 }
+    mut { trial: 1, mass: 50, temperature: 21.0, length: 6.3 },
+    mut { trial: 2, mass: 100, temperature: 21.2, length: 9.9 },
+    mut { trial: 3, mass: 150, temperature: 21.1, length: 14.4 },
+    mut { trial: 4, mass: 200, temperature: 20.9, length: 18.8 },
+    mut { trial: 5, mass: 250, temperature: 21.0, length: 22.2 },
+    mut { trial: 6, mass: 300, temperature: 21.3, length: 26.5 }
   ]
 
-  let summary = mut {
-    meanTemperature: (trials.0.temperature + trials.1.temperature + trials.2.temperature + trials.3.temperature + trials.4.temperature) / 5,
-    meanLength: (trials.0.length + trials.1.length + trials.2.length + trials.3.length + trials.4.length) / 5
+  let points = [
+    mut {
+      trial: trials.0.trial,
+      force: trials.0.mass / 1000 * setup.gravity,
+      extension: trials.0.length - setup.offset,
+      stiffness: trials.0.mass * setup.gravity / (trials.0.length - setup.offset)
+    },
+    mut {
+      trial: trials.1.trial,
+      force: trials.1.mass / 1000 * setup.gravity,
+      extension: trials.1.length - setup.offset,
+      stiffness: trials.1.mass * setup.gravity / (trials.1.length - setup.offset)
+    },
+    mut {
+      trial: trials.2.trial,
+      force: trials.2.mass / 1000 * setup.gravity,
+      extension: trials.2.length - setup.offset,
+      stiffness: trials.2.mass * setup.gravity / (trials.2.length - setup.offset)
+    },
+    mut {
+      trial: trials.3.trial,
+      force: trials.3.mass / 1000 * setup.gravity,
+      extension: trials.3.length - setup.offset,
+      stiffness: trials.3.mass * setup.gravity / (trials.3.length - setup.offset)
+    },
+    mut {
+      trial: trials.4.trial,
+      force: trials.4.mass / 1000 * setup.gravity,
+      extension: trials.4.length - setup.offset,
+      stiffness: trials.4.mass * setup.gravity / (trials.4.length - setup.offset)
+    },
+    mut {
+      trial: trials.5.trial,
+      force: trials.5.mass / 1000 * setup.gravity,
+      extension: trials.5.length - setup.offset,
+      stiffness: trials.5.mass * setup.gravity / (trials.5.length - setup.offset)
+    }
+  ]
+
+  let meanK = mut {
+    stiffness: (points.0.stiffness + points.1.stiffness + points.2.stiffness + points.3.stiffness + points.4.stiffness + points.5.stiffness) / 6,
+    temperature: (trials.0.temperature + trials.1.temperature + trials.2.temperature + trials.3.temperature + trials.4.temperature + trials.5.temperature) / 6
   }
+
+  let spread = mut {
+    variance: ((points.0.stiffness - meanK.stiffness) * (points.0.stiffness - meanK.stiffness) + (points.1.stiffness - meanK.stiffness) * (points.1.stiffness - meanK.stiffness) + (points.2.stiffness - meanK.stiffness) * (points.2.stiffness - meanK.stiffness) + (points.3.stiffness - meanK.stiffness) * (points.3.stiffness - meanK.stiffness) + (points.4.stiffness - meanK.stiffness) * (points.4.stiffness - meanK.stiffness) + (points.5.stiffness - meanK.stiffness) * (points.5.stiffness - meanK.stiffness)) / 5
+  }
+
+  let fit = [
+    mut {
+      trial: points.0.trial,
+      predicted: trials.0.mass * setup.gravity / meanK.stiffness,
+      residual: points.0.extension - trials.0.mass * setup.gravity / meanK.stiffness
+    },
+    mut {
+      trial: points.1.trial,
+      predicted: trials.1.mass * setup.gravity / meanK.stiffness,
+      residual: points.1.extension - trials.1.mass * setup.gravity / meanK.stiffness
+    },
+    mut {
+      trial: points.2.trial,
+      predicted: trials.2.mass * setup.gravity / meanK.stiffness,
+      residual: points.2.extension - trials.2.mass * setup.gravity / meanK.stiffness
+    },
+    mut {
+      trial: points.3.trial,
+      predicted: trials.3.mass * setup.gravity / meanK.stiffness,
+      residual: points.3.extension - trials.3.mass * setup.gravity / meanK.stiffness
+    },
+    mut {
+      trial: points.4.trial,
+      predicted: trials.4.mass * setup.gravity / meanK.stiffness,
+      residual: points.4.extension - trials.4.mass * setup.gravity / meanK.stiffness
+    },
+    mut {
+      trial: points.5.trial,
+      predicted: trials.5.mass * setup.gravity / meanK.stiffness,
+      residual: points.5.extension - trials.5.mass * setup.gravity / meanK.stiffness
+    }
+  ]
