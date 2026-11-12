@@ -26,8 +26,10 @@ export function normalizeImports(code, root) {
       .map((part, index) => index === 0 ? part : encodeURIComponent(part)).join("/") + quote);
   if (root) {
     const runtimeBase = pathToFileURL(path.join(path.resolve(root), "runtime", "std") + path.sep);
-    result = result.replace(/((?:\bfrom\s*|\bimport\s*)["'])runtime\/std\/([^"'\r\n]+)(["'])/g,
-      (_, prefix, specifier, quote) => prefix + new URL(specifier, runtimeBase).href + quote);
+    // hkmc2 emits a relative path to runtime/std. On macOS that path is wrong
+    // when the compiled file lives under /tmp, because /tmp is /private/tmp.
+    result = result.replace(/((?:\bfrom\s*|\bimport\s*)["'])([^"'\r\n]*runtime\/std\/)([^"'\r\n]+)(["'])/g,
+      (_, prefix, _dir, specifier, quote) => prefix + new URL(specifier, runtimeBase).href + quote);
   }
   return result;
 }

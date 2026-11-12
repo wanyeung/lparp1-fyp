@@ -1,0 +1,155 @@
+// @studio Student learning — course grade book
+// One course, six students, five assessed components. The grade report
+// holds the weights, the weighted totals, and the class mean. The score
+// sheet holds the marks a student can edit and the pass mark those totals
+// are compared with. Both cases read the same lets.
+
+// @document Grade report
+// id: report
+// includes: document:weight-policy, document:computed-totals, document:class-summary
+// @enddocument
+
+// @document Weight policy
+// id: weight-policy
+// includes: doc:weight-policy, table:policy, table:weightTotal
+// @enddocument
+
+// @document Computed totals
+// id: computed-totals
+// includes: doc:computed-totals, table:grades, chart:totals
+// @enddocument
+
+// @document Class summary
+// id: class-summary
+// includes: doc:class-summary, table:cohort
+// @enddocument
+
+// @document Score sheet
+// id: scores
+// includes: document:raw-scores, document:pass-mark
+// @enddocument
+
+// @document Raw scores
+// id: raw-scores
+// includes: doc:raw-scores, table:students, chart:quizzes, chart:exams
+// @enddocument
+
+// @document Pass mark
+// id: pass-mark
+// includes: doc:pass-mark, table:policy, table:grades
+// @enddocument
+
+// @doc Five components, meant to add to 100
+// id: weight-policy
+// Participation, quiz, lab, project, and exam are weighted 10, 15, 20, 25,
+// and 30. The weight total adds those five literals and is 100. A total
+// divides by that sum, so changing a weight rescales every student. The
+// raw marks stay on the score sheet.
+// @enddoc
+
+// @doc The total and the margin over the pass mark
+// id: computed-totals
+// Each total is the weighted sum divided by the weight total. Ada, Ben,
+// Cho, Dee, Eli, and Fay start at 78.6, 73.65, 91.2, 61.35, 80.3, and 47.65.
+// Pass margin is that total minus 60, so Fay is 12.35 below the line and
+// Dee is only 1.35 above it. Both columns are formulas.
+// @enddoc
+
+// @doc One mean for the whole class
+// id: class-summary
+// The class mean adds the six totals and divides by 6, which is 72.125.
+// Raising Ada's quiz from 80 to 100 lifts her total to 81.6 and the class
+// mean to 72.625. Ben's quiz stays 60.
+// @enddoc
+
+// @doc One row per student
+// id: raw-scores
+// Each row stores participation, quiz, lab, project, and exam. A green
+// cell is a literal. Editing Ada's quiz, or dragging her quiz bar, rewrites
+// that one number. Sorting the sheet changes the view only.
+// @enddoc
+
+// @doc Sixty is the line
+// id: pass-mark
+// The pass mark is 60, stored once. It is not copied onto the grade rows.
+// Fay's 47.65 is the only total under it. The exam chart can be dragged
+// because those marks are literals. The grade chart cannot.
+// @enddoc
+
+// @chart Grade totals
+// id: totals
+// type: bar
+// source: grades
+// x: name
+// y: total
+// @endchart
+
+// @chart Quiz scores
+// id: quizzes
+// type: bar
+// source: students
+// x: name
+// y: quiz
+// @endchart
+
+// @chart Exam scores
+// id: exams
+// type: column
+// source: students
+// x: name
+// y: exam
+// @endchart
+
+module StudentLearning with
+  let policy = mut { participation: 10, quiz: 15, lab: 20, project: 25, exam: 30, passMark: 60 }
+
+  let weightTotal = mut {
+    sum: policy.participation + policy.quiz + policy.lab + policy.project + policy.exam
+  }
+
+  let students = [
+    mut { name: "Ada", participation: 90, quiz: 80, lab: 88, project: 76, exam: 70 },
+    mut { name: "Ben", participation: 70, quiz: 60, lab: 72, project: 65, exam: 90 },
+    mut { name: "Cho", participation: 95, quiz: 92, lab: 90, project: 94, exam: 88 },
+    mut { name: "Dee", participation: 80, quiz: 55, lab: 60, project: 58, exam: 62 },
+    mut { name: "Eli", participation: 85, quiz: 78, lab: 80, project: 84, exam: 77 },
+    mut { name: "Fay", participation: 60, quiz: 40, lab: 50, project: 45, exam: 48 }
+  ]
+
+  let grades = [
+    mut {
+      name: students.0.name,
+      total: (students.0.participation * policy.participation + students.0.quiz * policy.quiz + students.0.lab * policy.lab + students.0.project * policy.project + students.0.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.0.participation * policy.participation + students.0.quiz * policy.quiz + students.0.lab * policy.lab + students.0.project * policy.project + students.0.exam * policy.exam) / weightTotal.sum - policy.passMark
+    },
+    mut {
+      name: students.1.name,
+      total: (students.1.participation * policy.participation + students.1.quiz * policy.quiz + students.1.lab * policy.lab + students.1.project * policy.project + students.1.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.1.participation * policy.participation + students.1.quiz * policy.quiz + students.1.lab * policy.lab + students.1.project * policy.project + students.1.exam * policy.exam) / weightTotal.sum - policy.passMark
+    },
+    mut {
+      name: students.2.name,
+      total: (students.2.participation * policy.participation + students.2.quiz * policy.quiz + students.2.lab * policy.lab + students.2.project * policy.project + students.2.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.2.participation * policy.participation + students.2.quiz * policy.quiz + students.2.lab * policy.lab + students.2.project * policy.project + students.2.exam * policy.exam) / weightTotal.sum - policy.passMark
+    },
+    mut {
+      name: students.3.name,
+      total: (students.3.participation * policy.participation + students.3.quiz * policy.quiz + students.3.lab * policy.lab + students.3.project * policy.project + students.3.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.3.participation * policy.participation + students.3.quiz * policy.quiz + students.3.lab * policy.lab + students.3.project * policy.project + students.3.exam * policy.exam) / weightTotal.sum - policy.passMark
+    },
+    mut {
+      name: students.4.name,
+      total: (students.4.participation * policy.participation + students.4.quiz * policy.quiz + students.4.lab * policy.lab + students.4.project * policy.project + students.4.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.4.participation * policy.participation + students.4.quiz * policy.quiz + students.4.lab * policy.lab + students.4.project * policy.project + students.4.exam * policy.exam) / weightTotal.sum - policy.passMark
+    },
+    mut {
+      name: students.5.name,
+      total: (students.5.participation * policy.participation + students.5.quiz * policy.quiz + students.5.lab * policy.lab + students.5.project * policy.project + students.5.exam * policy.exam) / weightTotal.sum,
+      passMargin: (students.5.participation * policy.participation + students.5.quiz * policy.quiz + students.5.lab * policy.lab + students.5.project * policy.project + students.5.exam * policy.exam) / weightTotal.sum - policy.passMark
+    }
+  ]
+
+  let cohort = mut {
+    mean: (grades.0.total + grades.1.total + grades.2.total + grades.3.total + grades.4.total + grades.5.total) / 6,
+    passMark: policy.passMark
+  }

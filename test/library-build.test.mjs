@@ -23,6 +23,7 @@ async function workspace() {
 test("normalizes Windows ESM imports without corrupting path encoding", () => {
   assert.equal(normalizeImports('import R from "C:/FYP folder/#demo/Runtime.mjs";'), 'import R from "file:///C:/FYP%20folder/%23demo/Runtime.mjs";');
   assert.equal(normalizeImports('import R from "./Runtime.mjs";'), 'import R from "./Runtime.mjs";');
+  assert.match(normalizeImports('import runtime from "../../../runtime/std/Runtime.mjs";', root), /^import runtime from "file:.*\/runtime\/std\/Runtime\.mjs";$/);
 });
 
 test("hkmc2-compiled program computes table values; Display writes HTML and retains provenance", { timeout: 50000 }, async () => {

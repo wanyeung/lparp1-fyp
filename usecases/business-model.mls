@@ -1,0 +1,284 @@
+// @studio Business model — café break-even
+// One month for a small café. The trading case records the menu, unsold
+// food, and what each item contributes. The break-even case turns rent,
+// wages, and the other overheads into the revenue and the unit mix that
+// cover them, then checks a profit target. The mix is held constant:
+// break-even does not assume the shop sells only the high-margin drink.
+
+// @document Trading account
+// id: trading
+// includes: document:menu, document:margins, document:sales-mix
+// @enddocument
+
+// @document Menu prices, cost, and waste
+// id: menu
+// includes: doc:menu, table:products, chart:units
+// @enddocument
+
+// @document Contribution after waste
+// id: margins
+// includes: doc:margins, table:lines, chart:contribution
+// @enddocument
+
+// @document Share of the month's takings
+// id: sales-mix
+// includes: doc:sales-mix, table:mix
+// @enddocument
+
+// @document Break-even case
+// id: break-even
+// includes: document:overheads, document:month-result, document:volume, document:target
+// @enddocument
+
+// @document Rent, wages, and the other overheads
+// id: overheads
+// includes: doc:overheads, table:overheads, chart:overheads
+// @enddocument
+
+// @document Profit, margin, and break-even revenue
+// id: month-result
+// includes: doc:month-result, table:result
+// @enddocument
+
+// @document Units that cover the overheads
+// id: volume
+// includes: doc:volume, table:breakEven, chart:break-even-units
+// @enddocument
+
+// @document Target profit and a trading day
+// id: target
+// includes: doc:target, table:plan, table:coverage, chart:coverage
+// @enddocument
+
+// @doc What the counter sells
+// id: menu
+// Espresso is 32 for 1400 cups and tea is 34 for 800 cups. Neither is wasted.
+// Latte is 46 for 2100 cups. Pastry is 30 for 650 pieces, and 0.08 of those
+// pieces are wasted. Sandwich is 58 for 420 pieces, with waste of 0.04.
+// Ingredient cost on the same rows is 7, 16, 14, 7, and 26.
+// Dragging a units bar rewrites that product's unit literal.
+// @enddoc
+
+// @doc Contribution is takings minus ingredients
+// id: margins
+// Waste raises the ingredient cost of what is actually sold. Contribution is
+// 35000, 63000, 9672, 21600, and 13003.2. Pastry keeps the least of its
+// price because the food cost and the waste both sit on that row.
+// The contribution chart reads those formulas, so its bars cannot be dragged.
+// Setting pastry units to 0 drops that line to 0. Profit falls to 36129.92,
+// which is still above zero, and break-even revenue falls to 138970.736
+// because the drinks that remain keep more of each dollar.
+// @enddoc
+
+// @doc The mix the break-even calculation keeps
+// id: sales-mix
+// Latte is 0.455 of revenue. Espresso is 0.211, tea 0.128, sandwich 0.115,
+// and pastry 0.092. Every break-even unit count below uses this mix.
+// Selling more latte and less pastry would cover the shop on less revenue.
+// @enddoc
+
+// @doc Costs that do not follow a cup
+// id: overheads
+// Rent is 35000, wages 48000, utilities 6000, insurance 2500, and software
+// 1500. The total is 93000. These are literals, so the overhead chart can
+// be dragged. They are not split onto the five menu rows.
+// @enddoc
+
+// @doc Where the month stands
+// id: month-result
+// Revenue is 212460. Ingredients after waste are 70184.8. Card fees at
+// 0.018 are 3824.28, so contribution is 138450.92. Profit after the 93000
+// overhead is 45450.92. Break-even revenue is 142713.245. The margin of
+// safety is 69746.755, and 0.328 of the contribution is profit. The shop
+// covers its overheads, with room to spare.
+// @enddoc
+
+// @doc The same mix, scaled down to zero profit
+// id: volume
+// Break-even at this mix is 940.405 espressos, 1410.608 lattes,
+// 436.617 pastries, 537.375 teas, and 282.122 sandwiches. Headroom is how
+// far this month already sits above that line. Both columns are formulas.
+// @enddoc
+
+// @doc A profit target, and what one open day must take
+// id: target
+// The plan asks for 25000 of profit on top of the overheads, across 26 open
+// days, after the card fee. The revenue that hits the target is 181077.02.
+// This month's 212460 is above it. A day needs 8171.538 of takings, of which
+// 5488.971 is the daily break-even. The coverage chart places break-even,
+// this month, and the target on one axis.
+// @enddoc
+
+// @chart Units sold
+// id: units
+// type: bar
+// source: products
+// x: product
+// y: units
+// @endchart
+
+// @chart Contribution after waste
+// id: contribution
+// type: bar
+// source: lines
+// x: product
+// y: contribution
+// @endchart
+
+// @chart Monthly overheads
+// id: overheads
+// type: bar
+// source: overheads
+// x: item
+// y: amount
+// @endchart
+
+// @chart Break-even units
+// id: break-even-units
+// type: column
+// source: breakEven
+// x: product
+// y: breakEvenUnits
+// @endchart
+
+// @chart Revenue against the break-even
+// id: coverage
+// type: bar
+// source: coverage
+// x: marker
+// y: revenue
+// @endchart
+
+module BusinessModel with
+  let products = [
+    mut { product: "Espresso", price: 32, units: 1400, variableCost: 7, waste: 0 },
+    mut { product: "Latte", price: 46, units: 2100, variableCost: 16, waste: 0 },
+    mut { product: "Pastry", price: 30, units: 650, variableCost: 14, waste: 0.08 },
+    mut { product: "Tea", price: 34, units: 800, variableCost: 7, waste: 0 },
+    mut { product: "Sandwich", price: 58, units: 420, variableCost: 26, waste: 0.04 }
+  ]
+
+  let lines = [
+    mut {
+      product: products.0.product,
+      units: products.0.units,
+      revenue: products.0.price * products.0.units,
+      ingredientCost: products.0.variableCost * products.0.units * (1 + products.0.waste),
+      contribution: products.0.price * products.0.units - products.0.variableCost * products.0.units * (1 + products.0.waste)
+    },
+    mut {
+      product: products.1.product,
+      units: products.1.units,
+      revenue: products.1.price * products.1.units,
+      ingredientCost: products.1.variableCost * products.1.units * (1 + products.1.waste),
+      contribution: products.1.price * products.1.units - products.1.variableCost * products.1.units * (1 + products.1.waste)
+    },
+    mut {
+      product: products.2.product,
+      units: products.2.units,
+      revenue: products.2.price * products.2.units,
+      ingredientCost: products.2.variableCost * products.2.units * (1 + products.2.waste),
+      contribution: products.2.price * products.2.units - products.2.variableCost * products.2.units * (1 + products.2.waste)
+    },
+    mut {
+      product: products.3.product,
+      units: products.3.units,
+      revenue: products.3.price * products.3.units,
+      ingredientCost: products.3.variableCost * products.3.units * (1 + products.3.waste),
+      contribution: products.3.price * products.3.units - products.3.variableCost * products.3.units * (1 + products.3.waste)
+    },
+    mut {
+      product: products.4.product,
+      units: products.4.units,
+      revenue: products.4.price * products.4.units,
+      ingredientCost: products.4.variableCost * products.4.units * (1 + products.4.waste),
+      contribution: products.4.price * products.4.units - products.4.variableCost * products.4.units * (1 + products.4.waste)
+    }
+  ]
+
+  let trading = mut {
+    revenue: lines.0.revenue + lines.1.revenue + lines.2.revenue + lines.3.revenue + lines.4.revenue,
+    ingredientCost: lines.0.ingredientCost + lines.1.ingredientCost + lines.2.ingredientCost + lines.3.ingredientCost + lines.4.ingredientCost,
+    contribution: lines.0.contribution + lines.1.contribution + lines.2.contribution + lines.3.contribution + lines.4.contribution
+  }
+
+  let mix = [
+    mut { product: lines.0.product, revenue: lines.0.revenue, share: lines.0.revenue / trading.revenue },
+    mut { product: lines.1.product, revenue: lines.1.revenue, share: lines.1.revenue / trading.revenue },
+    mut { product: lines.2.product, revenue: lines.2.revenue, share: lines.2.revenue / trading.revenue },
+    mut { product: lines.3.product, revenue: lines.3.revenue, share: lines.3.revenue / trading.revenue },
+    mut { product: lines.4.product, revenue: lines.4.revenue, share: lines.4.revenue / trading.revenue }
+  ]
+
+  let overheads = [
+    mut { item: "Rent", amount: 35000 },
+    mut { item: "Wages", amount: 48000 },
+    mut { item: "Utilities", amount: 6000 },
+    mut { item: "Insurance", amount: 2500 },
+    mut { item: "Software", amount: 1500 }
+  ]
+
+  let fixed = mut {
+    total: overheads.0.amount + overheads.1.amount + overheads.2.amount + overheads.3.amount + overheads.4.amount
+  }
+
+  let plan = mut { openDays: 26, cardRate: 0.018, targetProfit: 25000 }
+
+  let net = mut {
+    contribution: trading.contribution - trading.revenue * plan.cardRate
+  }
+
+  let result = mut {
+    revenue: trading.revenue,
+    ingredientCost: trading.ingredientCost,
+    cardFees: trading.revenue * plan.cardRate,
+    contribution: net.contribution,
+    fixedCost: fixed.total,
+    profit: net.contribution - fixed.total,
+    contributionRatio: net.contribution / trading.revenue,
+    breakEvenRevenue: fixed.total * trading.revenue / net.contribution,
+    marginOfSafety: trading.revenue - fixed.total * trading.revenue / net.contribution,
+    safetyRatio: (net.contribution - fixed.total) / net.contribution,
+    targetRevenue: (fixed.total + plan.targetProfit) * trading.revenue / net.contribution,
+    dailyTakings: trading.revenue / plan.openDays,
+    dailyBreakEven: fixed.total * trading.revenue / net.contribution / plan.openDays
+  }
+
+  let breakEven = [
+    mut {
+      product: lines.0.product,
+      units: lines.0.units,
+      breakEvenUnits: lines.0.units * fixed.total / net.contribution,
+      headroom: lines.0.units - lines.0.units * fixed.total / net.contribution
+    },
+    mut {
+      product: lines.1.product,
+      units: lines.1.units,
+      breakEvenUnits: lines.1.units * fixed.total / net.contribution,
+      headroom: lines.1.units - lines.1.units * fixed.total / net.contribution
+    },
+    mut {
+      product: lines.2.product,
+      units: lines.2.units,
+      breakEvenUnits: lines.2.units * fixed.total / net.contribution,
+      headroom: lines.2.units - lines.2.units * fixed.total / net.contribution
+    },
+    mut {
+      product: lines.3.product,
+      units: lines.3.units,
+      breakEvenUnits: lines.3.units * fixed.total / net.contribution,
+      headroom: lines.3.units - lines.3.units * fixed.total / net.contribution
+    },
+    mut {
+      product: lines.4.product,
+      units: lines.4.units,
+      breakEvenUnits: lines.4.units * fixed.total / net.contribution,
+      headroom: lines.4.units - lines.4.units * fixed.total / net.contribution
+    }
+  ]
+
+  let coverage = [
+    mut { marker: "Break-even", revenue: fixed.total * trading.revenue / net.contribution },
+    mut { marker: "This month", revenue: trading.revenue },
+    mut { marker: "Target", revenue: (fixed.total + plan.targetProfit) * trading.revenue / net.contribution }
+  ]

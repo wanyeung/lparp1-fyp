@@ -7,6 +7,8 @@ A desktop VS Code extension and MLscript document library built on the bundled H
 - the library-based execution engine (`CreateCell`, `CreateGroup`, `Display`, `Model`) from 0.5.x; and
 - the bidirectional table/chart interaction prototype from 0.6.x.
 
+The five `let` demonstrations from that prototype are kept in `usecases/`. The extension runs the Studio documents under `examples/usecases`, not those `let` files.
+
 The result is a workspace where editing a table cell or dragging a chart bar patches the **exact source literal**, saves the module, recompiles with hkmc2, and refreshes both the source and document views.
 
 ## Quick start
