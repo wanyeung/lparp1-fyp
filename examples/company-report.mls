@@ -1,0 +1,51 @@
+// MLscript Studio provenance demo
+// This file is valid hkmc2 MLscript. The @table, @chart, and @order blocks are
+// presentation metadata inside comments, so the compiler ignores them.
+//
+// In Studio Workspace, drag an artifact in the right pane. The extension rewrites
+// only the @order line below. Each chart remains linked to its source table.
+
+module CompanyReport with
+  fun total(a, b) = a + b
+  fun remaining(totalBudget, spent) = totalBudget - spent
+
+  val headcount = total(4, 3)
+  val budgetRemaining = remaining(120000, 76000)
+
+// @order table:employees, table:teams, chart:headcount-by-team, table:projects, chart:project-budget
+
+// @table Employees
+// id,name,team,role
+// 1,Ada,Engineering,Developer
+// 2,Marco,Engineering,Developer
+// 3,Leila,Design,Designer
+// 4,Sofia,Operations,Analyst
+// @endtable
+
+// @table Teams
+// team,lead,headcount
+// Engineering,Ada,2
+// Design,Leila,1
+// Operations,Sofia,1
+// @endtable
+
+// @chart Headcount by team
+// type: bar
+// source: Teams
+// x: team
+// y: headcount
+// @endchart
+
+// @table Projects
+// project,team,status,budget
+// Compiler refresh,Engineering,Active,50000
+// Document view,Design,In review,30000
+// Demo testing,Operations,Planned,40000
+// @endtable
+
+// @chart Project budget
+// type: pie
+// source: Projects
+// x: project
+// y: budget
+// @endchart

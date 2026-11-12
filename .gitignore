@@ -1,3 +1,11 @@
 node_modules/
 build/
 _to_delete/
+dist/
+*.vsix
+.DS_Store
+preview/
+library/Studio.mjs
+examples/**/*.mjs
+examples/**/*.html
+examples/**/*.document.json

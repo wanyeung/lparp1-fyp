@@ -1,0 +1,119 @@
+import "../../../library/Studio.mls"
+open Studio
+
+module RiskReview with
+  // Storyline: supplied case06.pdf, pages 1-2, reviewing a denominator mistake.
+  // All observations and financial assumptions below are SYNTHETIC DEMO INPUTS.
+  // No live market data, experimental evidence, historical losses or fines.
+  // Educational formula review only: NOT production VaR, a JPMorgan model
+  // recreation, a calibrated loss forecast, or a full risk review.
+
+  // EDITABLE ASSUMPTIONS. Rates are positive dimensionless rate-level index
+  // points, not percentage yields. Observation 0 is the starting level.
+  val useBuggyDenominator = false
+  val strictChecks = false
+  val pastRates = [100, 110, 104, 116, 108, 120, 114, 126, 118]
+  val notionalUSD = 1000000
+  val toySensitivity = 1
+  val riskLimitUSD = 75000
+  val checkTolerance = 0.000000000001
+  val checkOld = 100
+  val checkNew = 110
+  // Independent known answers: do not compute these via functions under test.
+  val expectedAverage = 105
+  val expectedRelativeChange = 10 / 105
+
+  // REUSABLE FORMULAS. Relative changes are fractions, not percentage points.
+  // Domain: positive levels, at least two observations, positive notional and
+  // limit, nonnegative sensitivity, and nonnegative tolerance.
+  fun average(a, b) = (a + b) / 2
+  fun relativeChange(old, newLevel) = (newLevel - old) / average(old, newLevel)
+  fun sumDenominatorChange(old, newLevel) = (newLevel - old) / (old + newLevel)
+  fun selectedRelativeChange(old, newLevel) =
+    if useBuggyDenominator then sumDenominatorChange(old, newLevel) else relativeChange(old, newLevel)
+  fun absoluteChange(change) = Math.abs(change)
+  fun closeEnough(expected, actual) = Math.abs(actual - expected) <= checkTolerance
+  fun checkVerdict(expected, actual) = if closeEnough(expected, actual) then "PASS" else "FAIL"
+  fun checkRow(label, expected, actual) =
+    [label, expected, actual, Math.abs(actual - expected), checkVerdict(expected, actual)]
+  fun indices(n) = if n <= 0 then [] else [...indices(n - 1), n]
+  // maximum is used only for nonnegative absolute changes; empty returns zero.
+  fun maximum(xs) = if xs.length == 0 then 0 else Math.max(xs.0, maximum(xs.slice(1)))
+  fun toyImpactUSD(change) = notionalUSD * toySensitivity * absoluteChange(change)
+  fun toyEstimateUSD(absoluteChanges) = notionalUSD * toySensitivity * maximum(absoluteChanges)
+  fun utilizationPct(estimate, limit) = 100 * estimate / limit
+  fun limitVerdict(estimate, limit) = if estimate <= limit then "Within toy limit" else "Above toy limit"
+  fun understatementPct(reference, selected) =
+    if reference == 0 then 0 else 100 * (reference - selected) / reference
+  fun enforceChecks(enabled, passed, value) =
+    if enabled then
+      if passed then value else throw Error("Assertion failed: known-input formula check. Disable strictChecks to inspect the verdict and shrink charts.")
+    else value
+
+  val scope = CreateText("rr-scope", "Review the formula, not a production risk model",
+    "Synthetic illustrative demo inputs only. The reference divides the difference by the AVERAGE of the two levels. The optional faulty formula divides by their SUM and therefore halves every relative change. The toy USD estimate is notional x sensitivity x maximum observed absolute relative change; it has no confidence level, calibrated tail model, or validated P&L mapping. This is not production VaR, a JPMorgan recreation, or a full risk review. Green assumption cells are editable in the combined workspace; computed verdicts, movement tables and charts are read-only and expose the literals they depend on.")
+  val assumptions = CreateCell("rr-assumptions", "Editable assumptions and units (green cells patch this module)", ["Assumption", "Value", "Unit or meaning"], [
+    ["useBuggyDenominator", useBuggyDenominator, "false: average; true: sum"],
+    ["strictChecks", strictChecks, "true: throw before Display if a known-input check fails"],
+    ["notionalUSD", notionalUSD, "synthetic USD exposure"],
+    ["toySensitivity", toySensitivity, "USD-impact multiplier per unit fractional change"],
+    ["riskLimitUSD", riskLimitUSD, "synthetic USD limit, must be positive"],
+    ["checkTolerance", checkTolerance, "absolute tolerance in the unit being tested"],
+    ["Observation spacing", "one synthetic step", "not dated market history"],
+    ["Tail assumption", "maximum observed absolute move", "no probability or confidence level"]
+  ])
+  val knownInputs = CreateCell("rr-known-inputs", "Known-input test fixtures (green cells are editable)", ["Test", "Old level", "New level", "Independent expected answer"], [
+    ["average(old,new)", checkOld, checkNew, expectedAverage],
+    ["relativeChange(old,new)", checkOld, checkNew, expectedRelativeChange],
+    ["selectedRelativeChange(old,new)", checkOld, checkNew, expectedRelativeChange]
+  ])
+  val checkRows = [
+    checkRow("average(old,new)", expectedAverage, average(checkOld, checkNew)),
+    checkRow("relativeChange(old,new)", expectedRelativeChange, relativeChange(checkOld, checkNew)),
+    checkRow("selectedRelativeChange(old,new)", expectedRelativeChange, selectedRelativeChange(checkOld, checkNew))
+  ]
+  val allChecksPassed = checkRows.filter(row => row.4 == "FAIL").length == 0
+  val checks = DeriveCell("rr-check-verdicts", "Known-input verdicts: independent expected vs computed actual", knownInputs,
+    ["Test", "Expected", "Actual", "Absolute error", "Verdict"], checkRows)
+  val checkHelp = CreateText("rr-check-help", "How to reveal the fault",
+    "Set useBuggyDenominator = true and keep strictChecks = false: the selected-formula check fails while the reference checks still pass, and the toy estimates shrink. With strictChecks = true the same failure throws before displaying the report. With the default false toggle, correct and selected chart lines overlap. Edit the green assumption cells in the document view or the named literals in the source pane; the combined workspace patches the source, rebuilds with hkmc2 and refreshes the report. Computed checks, movements and charts are read-only with source links.")
+
+  val rateRows = indices(pastRates.length).map(i => [i - 1, pastRates.at(i - 1)])
+  val rates = CreateCell("rr-past-rates", "Synthetic past rate levels: demonstration inputs", ["Observation", "Rate-level index"], rateRows)
+  val pairs = indices(pastRates.length - 1).map(i => [i, pastRates.at(i - 1), pastRates.at(i)])
+  fun movementRow(pair) = [
+    pair.0, pair.1, pair.2,
+    relativeChange(pair.1, pair.2), selectedRelativeChange(pair.1, pair.2),
+    absoluteChange(relativeChange(pair.1, pair.2)), absoluteChange(selectedRelativeChange(pair.1, pair.2)),
+    toyImpactUSD(relativeChange(pair.1, pair.2)), toyImpactUSD(selectedRelativeChange(pair.1, pair.2)), riskLimitUSD
+  ]
+  val movements = DeriveCell("rr-movements", "Computed adjacent changes and toy USD impacts", rates,
+    ["Step", "Old index", "New index", "Correct fraction", "Selected fraction", "Correct absolute fraction", "Selected absolute fraction", "Correct toy USD", "Selected toy USD", "Toy limit USD"],
+    pairs.map(pair => movementRow(pair)))
+  val impactChart = LineChart("rr-impact-lines", "Per-step toy USD impact: correct vs selected with limit", movements, "Step",
+    ["Correct toy USD", "Selected toy USD", "Toy limit USD"])
+  val historyHelp = CreateText("rr-history-help", "Read the calculation chain",
+    "Observation 0 is only a starting level. Each subsequent step uses its preceding level, computes a signed fraction, takes its absolute value, and maps it to a toy USD impact. Rate-level inputs are positive dimensionless index points; fractions such as 0.1 mean a 10 percent relative move. Derived tables retain provenance to the displayed source table; charts use displayed numeric derived columns.")
+
+  val correctAbsoluteChanges = pairs.map(pair => absoluteChange(relativeChange(pair.1, pair.2)))
+  val selectedAbsoluteChanges = pairs.map(pair => absoluteChange(selectedRelativeChange(pair.1, pair.2)))
+  val correctEstimateUSD = toyEstimateUSD(correctAbsoluteChanges)
+  val selectedEstimateUSD = toyEstimateUSD(selectedAbsoluteChanges)
+  val summary = DeriveCell("rr-toy-summary", "Toy maximum-move estimate against synthetic limit", movements,
+    ["Formula", "Toy estimate USD", "Limit USD", "Utilization percent", "Understatement percent", "Limit verdict"], [
+      ["Correct average denominator", correctEstimateUSD, riskLimitUSD, utilizationPct(correctEstimateUSD, riskLimitUSD), understatementPct(correctEstimateUSD, correctEstimateUSD), limitVerdict(correctEstimateUSD, riskLimitUSD)],
+      ["Selected denominator", selectedEstimateUSD, riskLimitUSD, utilizationPct(selectedEstimateUSD, riskLimitUSD), understatementPct(correctEstimateUSD, selectedEstimateUSD), limitVerdict(selectedEstimateUSD, riskLimitUSD)]
+    ])
+  val estimateChart = BarChart("rr-estimate-bars", "Toy estimate USD: correct reference vs selected formula", summary, "Formula", "Toy estimate USD")
+  val conclusion = CreateText("rr-review-note", "Reviewer interpretation",
+    "A formula mistake can make the selected estimate appear within a toy limit even while the correct reference exceeds it. PASS means only that these known-input checks passed, not model approval. This maximum-move proxy ignores confidence calibration, probability, portfolio aggregation, correlations, liquidity, nonlinear pricing, and unobserved tail events. Positive rate levels and a positive risk limit are required; input-domain validation and a full model review are outside this demo.")
+
+  val introduction = CreateGroup("rr-introduction", "1. Scope and assumptions", [scope, assumptions])
+  val validation = CreateGroup("rr-validation", "2. Reviewer checks", [knownInputs, checks, checkHelp])
+  val calculation = CreateGroup("rr-calculation", "3. Synthetic levels to absolute changes", [rates, movements, impactChart, historyHelp])
+  val review = CreateGroup("rr-review", "4. Toy estimate and limit review", [summary, estimateChart, conclusion])
+  val draftReport = CreateGroup("rr-report", "Risk review: catch a denominator error", [introduction, validation, calculation, review])
+  val report = enforceChecks(strictChecks, allChecksPassed, draftReport)
+  val displayOrder = ["rr-scope", "rr-assumptions", "rr-known-inputs", "rr-check-verdicts", "rr-check-help", "rr-past-rates", "rr-movements", "rr-impact-lines", "rr-history-help", "rr-toy-summary", "rr-estimate-bars", "rr-review-note"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

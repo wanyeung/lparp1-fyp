@@ -1,0 +1,246 @@
+// @studio Financial analysis — household year
+// Twelve months of pay, side income, living costs, tax, and a loan.
+// The books carry the cash balance and the loan balance forward. The
+// household case holds the literals those books read, and checks that the
+// spending categories still add up to the twelve living-cost rows.
+
+// @document Cash and loan books
+// id: books
+// includes: document:policy-terms, document:monthly-statement, document:loan-book
+// @enddocument
+
+// @document Opening cash, tax, and the loan
+// id: policy-terms
+// includes: doc:policy-terms, table:policy
+// @enddocument
+
+// @document Cash after tax, living costs, and the payment
+// id: monthly-statement
+// includes: doc:monthly-statement, table:statement, chart:cash, chart:net
+// @enddocument
+
+// @document Interest and the balance still owed
+// id: loan-book
+// includes: doc:loan-book, table:schedule, chart:loan
+// @enddocument
+
+// @document Household inputs
+// id: household
+// includes: document:pay-and-living, document:spending-categories, document:year-check
+// @enddocument
+
+// @document Salary, side income, and living costs
+// id: pay-and-living
+// includes: doc:pay-and-living, table:months, chart:salary, chart:side
+// @enddocument
+
+// @document Where the living costs sit
+// id: spending-categories
+// includes: doc:spending-categories, table:budget, chart:categories
+// @enddocument
+
+// @document The year, closed
+// id: year-check
+// includes: doc:year-check, table:reconciled, table:year
+// @enddocument
+
+// @doc What is fixed before January
+// id: policy-terms
+// Cash opens at 4000. Tax is 0.15 of salary plus side income. The loan
+// opens at 18000, the monthly rate is 0.008, and the payment is 1000.
+// The payment is interest first. Whatever remains reduces the balance.
+// @enddoc
+
+// @doc Net is what is left after three deductions
+// id: monthly-statement
+// January takes in 24500, sets aside tax of 3675, spends 15000, and pays
+// 1000 on the loan, so the net is 4825 and cash closes at 8825. February's
+// net is 5620 and March's is 3200. December closes at 60020. Tax, net, and
+// cash are formulas. In ChartView, Line or Area reads the year as a series.
+// @enddoc
+
+// @doc The same payment, a smaller balance
+// id: loan-book
+// January's interest is 144, so 856 of the payment is principal and the
+// balance falls to 17144. By December the interest is 65.585 and the
+// balance is 7263.76. Interest over the year is 1263.76. Principal repaid
+// is 10736.24. The two add to the 12000 of payments. The loan chart cannot
+// be dragged.
+// @enddoc
+
+// @doc Two raises, and a side income that is not pay
+// id: pay-and-living
+// Salary is 24000 from January to April, 25000 from May to October, and
+// 26000 in November and December. Side income is irregular and peaks at
+// 3500 in December. Living costs run from 14800 in February to 19800 in
+// December. Salary and side income are literals, so those charts can be
+// dragged. Raising February's side income from 1200 to 2000 adds 680 to
+// every later cash balance, because 0.15 of the extra 800 is tax.
+// @enddoc
+
+// @doc Five categories for the same living costs
+// id: spending-categories
+// Rent 96000, food 42000, transport 18000, utilities 12000, and other 28500.
+// They are literals, so the category chart can be dragged. They are not a
+// second copy of the month rows. The loan payment is not in this list.
+// @enddoc
+
+// @doc Both living-cost lists should read 196500
+// id: year-check
+// Income for the year is 311200 and tax is 46680. Closing cash of 60020 is
+// 3.665 months of this year's living costs, and 0.18 of income was added
+// to cash. If a category changes and a month does not, the two totals on
+// the reconciled row diverge.
+// @enddoc
+
+// @chart Salary
+// id: salary
+// type: bar
+// source: months
+// x: month
+// y: salary
+// @endchart
+
+// @chart Side income
+// id: side
+// type: bar
+// source: months
+// x: month
+// y: side
+// @endchart
+
+// @chart Cash after each month
+// id: cash
+// type: line
+// source: statement
+// x: month
+// y: cash
+// @endchart
+
+// @chart Net cash
+// id: net
+// type: bar
+// source: statement
+// x: month
+// y: net
+// @endchart
+
+// @chart Loan balance
+// id: loan
+// type: line
+// source: schedule
+// x: month
+// y: balance
+// @endchart
+
+// @chart Living costs by category
+// id: categories
+// type: bar
+// source: budget
+// x: category
+// y: amount
+// @endchart
+
+module FinancialAnalysis with
+  let policy = mut { openingCash: 4000, taxRate: 0.15, openingLoan: 18000, loanRate: 0.008, loanPayment: 1000 }
+
+  let months = [
+    mut { month: "Jan", salary: 24000, side: 500, living: 15000 },
+    mut { month: "Feb", salary: 24000, side: 1200, living: 14800 },
+    mut { month: "Mar", salary: 24000, side: 0, living: 16200 },
+    mut { month: "Apr", salary: 24000, side: 800, living: 15500 },
+    mut { month: "May", salary: 25000, side: 1500, living: 15800 },
+    mut { month: "Jun", salary: 25000, side: 400, living: 17100 },
+    mut { month: "Jul", salary: 25000, side: 0, living: 16800 },
+    mut { month: "Aug", salary: 25000, side: 2000, living: 16000 },
+    mut { month: "Sep", salary: 25000, side: 600, living: 15900 },
+    mut { month: "Oct", salary: 25000, side: 900, living: 16400 },
+    mut { month: "Nov", salary: 26000, side: 1800, living: 17200 },
+    mut { month: "Dec", salary: 26000, side: 3500, living: 19800 }
+  ]
+
+  let budget = [
+    mut { category: "Rent", amount: 96000 },
+    mut { category: "Food", amount: 42000 },
+    mut { category: "Transport", amount: 18000 },
+    mut { category: "Utilities", amount: 12000 },
+    mut { category: "Other", amount: 28500 }
+  ]
+
+  let activity = [
+    mut { month: months.0.month, income: months.0.salary + months.0.side, tax: (months.0.salary + months.0.side) * policy.taxRate, net: (months.0.salary + months.0.side) * (1 - policy.taxRate) - months.0.living - policy.loanPayment },
+    mut { month: months.1.month, income: months.1.salary + months.1.side, tax: (months.1.salary + months.1.side) * policy.taxRate, net: (months.1.salary + months.1.side) * (1 - policy.taxRate) - months.1.living - policy.loanPayment },
+    mut { month: months.2.month, income: months.2.salary + months.2.side, tax: (months.2.salary + months.2.side) * policy.taxRate, net: (months.2.salary + months.2.side) * (1 - policy.taxRate) - months.2.living - policy.loanPayment },
+    mut { month: months.3.month, income: months.3.salary + months.3.side, tax: (months.3.salary + months.3.side) * policy.taxRate, net: (months.3.salary + months.3.side) * (1 - policy.taxRate) - months.3.living - policy.loanPayment },
+    mut { month: months.4.month, income: months.4.salary + months.4.side, tax: (months.4.salary + months.4.side) * policy.taxRate, net: (months.4.salary + months.4.side) * (1 - policy.taxRate) - months.4.living - policy.loanPayment },
+    mut { month: months.5.month, income: months.5.salary + months.5.side, tax: (months.5.salary + months.5.side) * policy.taxRate, net: (months.5.salary + months.5.side) * (1 - policy.taxRate) - months.5.living - policy.loanPayment },
+    mut { month: months.6.month, income: months.6.salary + months.6.side, tax: (months.6.salary + months.6.side) * policy.taxRate, net: (months.6.salary + months.6.side) * (1 - policy.taxRate) - months.6.living - policy.loanPayment },
+    mut { month: months.7.month, income: months.7.salary + months.7.side, tax: (months.7.salary + months.7.side) * policy.taxRate, net: (months.7.salary + months.7.side) * (1 - policy.taxRate) - months.7.living - policy.loanPayment },
+    mut { month: months.8.month, income: months.8.salary + months.8.side, tax: (months.8.salary + months.8.side) * policy.taxRate, net: (months.8.salary + months.8.side) * (1 - policy.taxRate) - months.8.living - policy.loanPayment },
+    mut { month: months.9.month, income: months.9.salary + months.9.side, tax: (months.9.salary + months.9.side) * policy.taxRate, net: (months.9.salary + months.9.side) * (1 - policy.taxRate) - months.9.living - policy.loanPayment },
+    mut { month: months.10.month, income: months.10.salary + months.10.side, tax: (months.10.salary + months.10.side) * policy.taxRate, net: (months.10.salary + months.10.side) * (1 - policy.taxRate) - months.10.living - policy.loanPayment },
+    mut { month: months.11.month, income: months.11.salary + months.11.side, tax: (months.11.salary + months.11.side) * policy.taxRate, net: (months.11.salary + months.11.side) * (1 - policy.taxRate) - months.11.living - policy.loanPayment }
+  ]
+
+  let statement = [
+    mut { month: activity.0.month, income: activity.0.income, tax: activity.0.tax, living: months.0.living, loanPayment: policy.loanPayment, net: activity.0.net, cash: policy.openingCash + activity.0.net },
+    mut { month: activity.1.month, income: activity.1.income, tax: activity.1.tax, living: months.1.living, loanPayment: policy.loanPayment, net: activity.1.net, cash: policy.openingCash + activity.0.net + activity.1.net },
+    mut { month: activity.2.month, income: activity.2.income, tax: activity.2.tax, living: months.2.living, loanPayment: policy.loanPayment, net: activity.2.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net },
+    mut { month: activity.3.month, income: activity.3.income, tax: activity.3.tax, living: months.3.living, loanPayment: policy.loanPayment, net: activity.3.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net },
+    mut { month: activity.4.month, income: activity.4.income, tax: activity.4.tax, living: months.4.living, loanPayment: policy.loanPayment, net: activity.4.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net },
+    mut { month: activity.5.month, income: activity.5.income, tax: activity.5.tax, living: months.5.living, loanPayment: policy.loanPayment, net: activity.5.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net },
+    mut { month: activity.6.month, income: activity.6.income, tax: activity.6.tax, living: months.6.living, loanPayment: policy.loanPayment, net: activity.6.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net },
+    mut { month: activity.7.month, income: activity.7.income, tax: activity.7.tax, living: months.7.living, loanPayment: policy.loanPayment, net: activity.7.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net },
+    mut { month: activity.8.month, income: activity.8.income, tax: activity.8.tax, living: months.8.living, loanPayment: policy.loanPayment, net: activity.8.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net },
+    mut { month: activity.9.month, income: activity.9.income, tax: activity.9.tax, living: months.9.living, loanPayment: policy.loanPayment, net: activity.9.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net },
+    mut { month: activity.10.month, income: activity.10.income, tax: activity.10.tax, living: months.10.living, loanPayment: policy.loanPayment, net: activity.10.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net + activity.10.net },
+    mut { month: activity.11.month, income: activity.11.income, tax: activity.11.tax, living: months.11.living, loanPayment: policy.loanPayment, net: activity.11.net, cash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net + activity.10.net + activity.11.net }
+  ]
+
+  let loanJan = mut { interest: policy.openingLoan * policy.loanRate, balance: policy.openingLoan * (1 + policy.loanRate) - policy.loanPayment }
+  let loanFeb = mut { interest: loanJan.balance * policy.loanRate, balance: loanJan.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanMar = mut { interest: loanFeb.balance * policy.loanRate, balance: loanFeb.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanApr = mut { interest: loanMar.balance * policy.loanRate, balance: loanMar.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanMay = mut { interest: loanApr.balance * policy.loanRate, balance: loanApr.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanJun = mut { interest: loanMay.balance * policy.loanRate, balance: loanMay.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanJul = mut { interest: loanJun.balance * policy.loanRate, balance: loanJun.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanAug = mut { interest: loanJul.balance * policy.loanRate, balance: loanJul.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanSep = mut { interest: loanAug.balance * policy.loanRate, balance: loanAug.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanOct = mut { interest: loanSep.balance * policy.loanRate, balance: loanSep.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanNov = mut { interest: loanOct.balance * policy.loanRate, balance: loanOct.balance * (1 + policy.loanRate) - policy.loanPayment }
+  let loanDec = mut { interest: loanNov.balance * policy.loanRate, balance: loanNov.balance * (1 + policy.loanRate) - policy.loanPayment }
+
+  let schedule = [
+    mut { month: months.0.month, interest: loanJan.interest, principal: policy.loanPayment - loanJan.interest, balance: loanJan.balance },
+    mut { month: months.1.month, interest: loanFeb.interest, principal: policy.loanPayment - loanFeb.interest, balance: loanFeb.balance },
+    mut { month: months.2.month, interest: loanMar.interest, principal: policy.loanPayment - loanMar.interest, balance: loanMar.balance },
+    mut { month: months.3.month, interest: loanApr.interest, principal: policy.loanPayment - loanApr.interest, balance: loanApr.balance },
+    mut { month: months.4.month, interest: loanMay.interest, principal: policy.loanPayment - loanMay.interest, balance: loanMay.balance },
+    mut { month: months.5.month, interest: loanJun.interest, principal: policy.loanPayment - loanJun.interest, balance: loanJun.balance },
+    mut { month: months.6.month, interest: loanJul.interest, principal: policy.loanPayment - loanJul.interest, balance: loanJul.balance },
+    mut { month: months.7.month, interest: loanAug.interest, principal: policy.loanPayment - loanAug.interest, balance: loanAug.balance },
+    mut { month: months.8.month, interest: loanSep.interest, principal: policy.loanPayment - loanSep.interest, balance: loanSep.balance },
+    mut { month: months.9.month, interest: loanOct.interest, principal: policy.loanPayment - loanOct.interest, balance: loanOct.balance },
+    mut { month: months.10.month, interest: loanNov.interest, principal: policy.loanPayment - loanNov.interest, balance: loanNov.balance },
+    mut { month: months.11.month, interest: loanDec.interest, principal: policy.loanPayment - loanDec.interest, balance: loanDec.balance }
+  ]
+
+  let reconciled = [
+    mut {
+      categoryTotal: budget.0.amount + budget.1.amount + budget.2.amount + budget.3.amount + budget.4.amount,
+      livingTotal: months.0.living + months.1.living + months.2.living + months.3.living + months.4.living + months.5.living + months.6.living + months.7.living + months.8.living + months.9.living + months.10.living + months.11.living
+    }
+  ]
+
+  let year = mut {
+    income: activity.0.income + activity.1.income + activity.2.income + activity.3.income + activity.4.income + activity.5.income + activity.6.income + activity.7.income + activity.8.income + activity.9.income + activity.10.income + activity.11.income,
+    tax: activity.0.tax + activity.1.tax + activity.2.tax + activity.3.tax + activity.4.tax + activity.5.tax + activity.6.tax + activity.7.tax + activity.8.tax + activity.9.tax + activity.10.tax + activity.11.tax,
+    living: months.0.living + months.1.living + months.2.living + months.3.living + months.4.living + months.5.living + months.6.living + months.7.living + months.8.living + months.9.living + months.10.living + months.11.living,
+    loanPaid: policy.loanPayment * 12,
+    interest: loanJan.interest + loanFeb.interest + loanMar.interest + loanApr.interest + loanMay.interest + loanJun.interest + loanJul.interest + loanAug.interest + loanSep.interest + loanOct.interest + loanNov.interest + loanDec.interest,
+    principalPaid: policy.openingLoan - loanDec.balance,
+    closingCash: policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net + activity.10.net + activity.11.net,
+    closingLoan: loanDec.balance,
+    emergencyMonths: (policy.openingCash + activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net + activity.10.net + activity.11.net) * 12 / (months.0.living + months.1.living + months.2.living + months.3.living + months.4.living + months.5.living + months.6.living + months.7.living + months.8.living + months.9.living + months.10.living + months.11.living),
+    savingsRate: (activity.0.net + activity.1.net + activity.2.net + activity.3.net + activity.4.net + activity.5.net + activity.6.net + activity.7.net + activity.8.net + activity.9.net + activity.10.net + activity.11.net) / (activity.0.income + activity.1.income + activity.2.income + activity.3.income + activity.4.income + activity.5.income + activity.6.income + activity.7.income + activity.8.income + activity.9.income + activity.10.income + activity.11.income)
+  }

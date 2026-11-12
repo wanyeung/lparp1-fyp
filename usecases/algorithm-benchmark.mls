@@ -1,0 +1,164 @@
+// @studio Algorithm benchmark — search timings
+// Linear search, binary search, a balanced tree, and a hash table, each
+// timed at 1 000, 10 000, and 100 000 keys. The timing case stores the
+// measurements. The report compares each run with linear search at the
+// same size, then asks how the time grows when the table grows tenfold.
+
+// @document Raw timings
+// id: timings
+// includes: document:one-thousand-keys, document:ten-thousand-keys, document:hundred-thousand-keys
+// @enddocument
+
+// @document One thousand keys
+// id: one-thousand-keys
+// includes: doc:one-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document Ten thousand keys
+// id: ten-thousand-keys
+// includes: doc:ten-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document One hundred thousand keys
+// id: hundred-thousand-keys
+// includes: doc:hundred-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document Scaling report
+// id: report
+// includes: document:matched-sizes, document:cost-per-thousand, document:tenfold-growth
+// @enddocument
+
+// @document Speedup against linear search
+// id: matched-sizes
+// includes: doc:matched-sizes, table:comparison, chart:speedups
+// @enddocument
+
+// @document Time per thousand keys
+// id: cost-per-thousand
+// includes: doc:cost-per-thousand, table:comparison, chart:per-thousand
+// @enddocument
+
+// @document Growing the table tenfold
+// id: tenfold-growth
+// includes: doc:tenfold-growth, table:scale, chart:growth
+// @enddocument
+
+// @doc Lookups over 1 000 keys
+// id: one-thousand-keys
+// One lookup takes 12400 microseconds with linear search, 800 with binary
+// search, 500 with the tree, and 300 with the hash table. Dragging a bar
+// records a new run by rewriting that microseconds literal.
+// @enddoc
+
+// @doc Lookups over 10 000 keys
+// id: ten-thousand-keys
+// The same four algorithms take 128000, 1100, 900, and 420 microseconds.
+// These rows sit in the same runs table. The speedup for this size uses
+// 128000 as its baseline, not the 1 000-key time.
+// @enddoc
+
+// @doc Lookups over 100 000 keys
+// id: hundred-thousand-keys
+// Linear search takes 1350000 microseconds. Binary search, the tree, and
+// the hash table take 1500, 1300, and 560. Linear search has grown almost
+// with the table. The other three have not.
+// @enddoc
+
+// @doc Compare only matching sizes
+// id: matched-sizes
+// Speedup is the linear-search time at that size divided by the candidate.
+// Linear search divided by itself is 1 at every size. At 1 000 keys the
+// others are 15.5, 24.8, and 41.333. At 100 000 keys the hash table is
+// 2410.714 times the linear search. The speedup chart cannot be dragged.
+// @enddoc
+
+// @doc A flat line is what linear search should look like
+// id: cost-per-thousand
+// Time per thousand keys is the measured microseconds times 1000, divided
+// by the input size. Linear search stays near 12400, 12800, and 13500.
+// The hash table falls from 300 to 42 to 5.6, because one lookup barely
+// grows while the thousand keys in the denominator do.
+// @enddoc
+
+// @doc Ten times the keys is not ten times the time
+// id: tenfold-growth
+// Growth is the larger timing divided by the timing of the same algorithm
+// at the previous size. Linear search grows 10.323 and then 10.547.
+// Binary search grows 1.375 and then 1.364. The hash table grows 1.4 and
+// then 1.333. Those cells are formulas.
+// @enddoc
+
+// @chart Measured time
+// id: times
+// type: bar
+// source: runs
+// x: label
+// y: microseconds
+// @endchart
+
+// @chart Speedup against linear search
+// id: speedups
+// type: bar
+// source: comparison
+// x: label
+// y: speedup
+// @endchart
+
+// @chart Microseconds per thousand keys
+// id: per-thousand
+// type: column
+// source: comparison
+// x: label
+// y: perThousand
+// @endchart
+
+// @chart Growth across a tenfold table
+// id: growth
+// type: column
+// source: scale
+// x: label
+// y: growth
+// @endchart
+
+module AlgorithmBenchmark with
+  let runs = [
+    mut { label: "Linear 1k", algorithm: "Linear search", inputSize: 1000, microseconds: 12400 },
+    mut { label: "Binary 1k", algorithm: "Binary search", inputSize: 1000, microseconds: 800 },
+    mut { label: "Tree 1k", algorithm: "Tree lookup", inputSize: 1000, microseconds: 500 },
+    mut { label: "Hash 1k", algorithm: "Hash lookup", inputSize: 1000, microseconds: 300 },
+    mut { label: "Linear 10k", algorithm: "Linear search", inputSize: 10000, microseconds: 128000 },
+    mut { label: "Binary 10k", algorithm: "Binary search", inputSize: 10000, microseconds: 1100 },
+    mut { label: "Tree 10k", algorithm: "Tree lookup", inputSize: 10000, microseconds: 900 },
+    mut { label: "Hash 10k", algorithm: "Hash lookup", inputSize: 10000, microseconds: 420 },
+    mut { label: "Linear 100k", algorithm: "Linear search", inputSize: 100000, microseconds: 1350000 },
+    mut { label: "Binary 100k", algorithm: "Binary search", inputSize: 100000, microseconds: 1500 },
+    mut { label: "Tree 100k", algorithm: "Tree lookup", inputSize: 100000, microseconds: 1300 },
+    mut { label: "Hash 100k", algorithm: "Hash lookup", inputSize: 100000, microseconds: 560 }
+  ]
+
+  let comparison = [
+    mut { label: runs.0.label, inputSize: runs.0.inputSize, microseconds: runs.0.microseconds, speedup: runs.0.microseconds / runs.0.microseconds, perThousand: runs.0.microseconds * 1000 / runs.0.inputSize },
+    mut { label: runs.1.label, inputSize: runs.1.inputSize, microseconds: runs.1.microseconds, speedup: runs.0.microseconds / runs.1.microseconds, perThousand: runs.1.microseconds * 1000 / runs.1.inputSize },
+    mut { label: runs.2.label, inputSize: runs.2.inputSize, microseconds: runs.2.microseconds, speedup: runs.0.microseconds / runs.2.microseconds, perThousand: runs.2.microseconds * 1000 / runs.2.inputSize },
+    mut { label: runs.3.label, inputSize: runs.3.inputSize, microseconds: runs.3.microseconds, speedup: runs.0.microseconds / runs.3.microseconds, perThousand: runs.3.microseconds * 1000 / runs.3.inputSize },
+    mut { label: runs.4.label, inputSize: runs.4.inputSize, microseconds: runs.4.microseconds, speedup: runs.4.microseconds / runs.4.microseconds, perThousand: runs.4.microseconds * 1000 / runs.4.inputSize },
+    mut { label: runs.5.label, inputSize: runs.5.inputSize, microseconds: runs.5.microseconds, speedup: runs.4.microseconds / runs.5.microseconds, perThousand: runs.5.microseconds * 1000 / runs.5.inputSize },
+    mut { label: runs.6.label, inputSize: runs.6.inputSize, microseconds: runs.6.microseconds, speedup: runs.4.microseconds / runs.6.microseconds, perThousand: runs.6.microseconds * 1000 / runs.6.inputSize },
+    mut { label: runs.7.label, inputSize: runs.7.inputSize, microseconds: runs.7.microseconds, speedup: runs.4.microseconds / runs.7.microseconds, perThousand: runs.7.microseconds * 1000 / runs.7.inputSize },
+    mut { label: runs.8.label, inputSize: runs.8.inputSize, microseconds: runs.8.microseconds, speedup: runs.8.microseconds / runs.8.microseconds, perThousand: runs.8.microseconds * 1000 / runs.8.inputSize },
+    mut { label: runs.9.label, inputSize: runs.9.inputSize, microseconds: runs.9.microseconds, speedup: runs.8.microseconds / runs.9.microseconds, perThousand: runs.9.microseconds * 1000 / runs.9.inputSize },
+    mut { label: runs.10.label, inputSize: runs.10.inputSize, microseconds: runs.10.microseconds, speedup: runs.8.microseconds / runs.10.microseconds, perThousand: runs.10.microseconds * 1000 / runs.10.inputSize },
+    mut { label: runs.11.label, inputSize: runs.11.inputSize, microseconds: runs.11.microseconds, speedup: runs.8.microseconds / runs.11.microseconds, perThousand: runs.11.microseconds * 1000 / runs.11.inputSize }
+  ]
+
+  let scale = [
+    mut { label: "Linear 1k to 10k", growth: runs.4.microseconds / runs.0.microseconds },
+    mut { label: "Binary 1k to 10k", growth: runs.5.microseconds / runs.1.microseconds },
+    mut { label: "Tree 1k to 10k", growth: runs.6.microseconds / runs.2.microseconds },
+    mut { label: "Hash 1k to 10k", growth: runs.7.microseconds / runs.3.microseconds },
+    mut { label: "Linear 10k to 100k", growth: runs.8.microseconds / runs.4.microseconds },
+    mut { label: "Binary 10k to 100k", growth: runs.9.microseconds / runs.5.microseconds },
+    mut { label: "Tree 10k to 100k", growth: runs.10.microseconds / runs.6.microseconds },
+    mut { label: "Hash 10k to 100k", growth: runs.11.microseconds / runs.7.microseconds }
+  ]

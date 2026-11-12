@@ -1,0 +1,60 @@
+import "../../../library/Studio.mls"
+open Studio
+
+module CompoundInterest with
+  // Synthetic illustrative demo inputs, NOT live market or experimental data.
+  // Storyline: case01.pdf, Finance University Student: understanding compound interest.
+  // Edit annualRate to 0.06 and years to 30 to explore the PDF's second scenario.
+  // Domain: finite principal/contribution >= 0; annualRate >= 0; integer years >= 0.
+  val principal = 10000
+  val annualRate = 0.03
+  val years = 10
+  val monthlyContribution = 100
+  val monthsPerYear = 12
+
+  // The annual rate is nominal, divided by 12 for monthly compounding.
+  // Deposits occur at each month END, including the final month.
+  // Money is in illustrative USD; there are no taxes, fees, inflation or withdrawals.
+  fun annualPoints(n) = if n <= 0 then [0] else [...annualPoints(n - 1), n]
+  fun monthsAt(t) = monthsPerYear * t
+  fun cashPaidIn(p, c, t) = p + c * monthsAt(t)
+
+  // No interest-on-interest: the initial principal earns p*r*t.
+  // At month m, deposits 1..m earn simple interest for m-1..0 months.
+  // Sum of exposure months = m*(m-1)/2; the final deposit earns zero interest.
+  // This avoids unfairly giving late deposits a full investment period's interest.
+  fun simpleContributionInterest(c, r, m) = c * (r / monthsPerYear) * m * (m - 1) / 2
+  fun simpleFutureValue(p, c, r, t) = p * (1 + r * t) + c * monthsAt(t) + simpleContributionInterest(c, r, monthsAt(t))
+
+  // Ordinary annuity FV for end-of-month deposits; no precomputed balances.
+  // r = 0 has an explicit branch to avoid division by zero.
+  fun contributionFutureValue(c, monthlyRate, m) = if monthlyRate == 0 then c * m else c * (Math.pow(1 + monthlyRate, m) - 1) / monthlyRate
+  fun compoundFutureValue(p, c, r, t) = p * Math.pow(1 + r / monthsPerYear, monthsAt(t)) + contributionFutureValue(c, r / monthsPerYear, monthsAt(t))
+  fun simpleAt(t) = simpleFutureValue(principal, monthlyContribution, annualRate, t)
+  fun compoundAt(t) = compoundFutureValue(principal, monthlyContribution, annualRate, t)
+
+  val assumptions = CreateCell("ci-assumptions", "Editable assumptions (green cells patch this module)", ["Parameter", "Value", "Units / convention"], [
+    ["principal", principal, "USD paid at time zero"],
+    ["annualRate", annualRate, "Nominal annual fraction; 0.03 = 3%; try 0.06"],
+    ["years", years, "Nonnegative integer years; try 30"],
+    ["monthlyContribution", monthlyContribution, "USD deposited at every month end; try 0 first"],
+    ["monthsPerYear", monthsPerYear, "Fixed monthly/calendar convention; keep at 12"],
+    ["Contribution timing", "End of month", "Final month's deposit has no time to earn interest"],
+    ["Excluded effects", "Taxes, fees, inflation, withdrawals", "Constant rate and contribution; not a forecast"]
+  ])
+
+  // All table cells are scalar values. Balances retain calculation precision.
+  val annualRows = annualPoints(years).map(t => [t, cashPaidIn(principal, monthlyContribution, t), simpleAt(t), compoundAt(t), compoundAt(t) - simpleAt(t)])
+  val annualResults = DeriveCell("ci-annual-results", "Annual results: identical cash flows, different interest rules", assumptions, ["Year", "Cash paid in (USD)", "Simple balance (USD)", "Compound balance (USD)", "Compound minus simple (USD)"], annualRows)
+  val comparison = LineChart("ci-comparison", "Annual balances (USD): simple vs monthly compound", annualResults, "Year", ["Simple balance (USD)", "Compound balance (USD)"])
+
+  val introduction = CreateText("ci-introduction", "Finance student: understanding compound interest", "Synthetic illustrative educational inputs, not live market or experimental data. Compare simple interest with monthly compounding at annual time points. Both methods receive the same initial principal and end-of-month contributions. Edit a green assumption cell in the document view or edit the named literal in the source pane. The combined workspace patches the owning literal, recompiles with hkmc2 and refreshes the view; computed annual results and line points are read-only with source links.")
+  val formulas = CreateText("ci-formulas", "Fair treatment of contributions", "Let P be initial USD, C be USD deposited at each month end, r the nominal annual rate, t elapsed years, m = 12*t, and i = r/12. Simple balance = P*(1+r*t) + C*m + C*i*m*(m-1)/2. A deposit made at month k earns only C*i*(m-k) simple interest; none of its interest earns interest. Compound balance = P*(1+i)^m + C*((1+i)^m-1)/i. When i = 0, the contribution term is C*m and both balances equal P+C*m. The rate is nominal annual, not an effective annual yield.")
+  val interpretation = CreateText("ci-interpretation", "Interpretation and suggested experiment", "First set monthlyContribution = 0: the simple balance is linear in time, while positive-rate monthly compounding curves upward. Restore contributions: even the simple balance can bend because each new deposit adds another source of future simple interest. This is not compounding of interest. Change annualRate from 0.03 to 0.06, and years from 10 to 30, rebuilding after each edit; inspect the computed gap in the annual table and the two lines in the single overlay plot. Try annualRate = 0 to verify that both balances match cash paid in. Longer time and higher positive rates generally widen the compounding advantage for these nonnegative cash flows. Annual plotted points sample monthly accumulation; the connecting lines are not intra-year observations. Green assumption cells are editable; computed annual results and line points are read-only and reveal their source literals.")
+
+  val inputsGroup = CreateGroup("ci-inputs-group", "Inputs and mathematical conventions", [assumptions, formulas])
+  val resultsGroup = CreateGroup("ci-results-group", "Computed comparison with provenance", [annualResults, comparison, interpretation])
+  val report = CreateGroup("ci-report", "Simple interest versus monthly compounding", [introduction, inputsGroup, resultsGroup])
+  val displayOrder = ["ci-introduction", "ci-assumptions", "ci-formulas", "ci-annual-results", "ci-comparison", "ci-interpretation"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

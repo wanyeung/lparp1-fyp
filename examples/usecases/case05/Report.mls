@@ -1,0 +1,12 @@
+import "../../../library/Studio.mls"
+import "./Experiment.mls"
+open Studio
+
+module Report with
+  // Synthetic illustrative demo inputs, not measured experimental data.
+  // Experiment is the single source of raw readings and cleaning assumptions.
+  val introduction = CreateText("case05-report-introduction", "Engineering report preparation", "This document imports Experiment.report, preserving the raw readings, computed cleaning audit, derived tables and charts in one ordered group. Green raw cells and bars are still backed by Experiment.mls: editing them patches that imported source file, recompiles and refreshes this report. Computed values remain read-only and link back to the literals they use. This demonstrates organised demo inputs ready for a report, not a claim that an actual experiment was validated.")
+  val report = CreateGroup("case05-report", "Engineering report: cleaned experiment inputs", [introduction, Experiment.report])
+  val displayOrder = ["case05-report-introduction", "case05-scope", "case05-assumptions", "case05-raw", "case05-raw-chart", "case05-status", "case05-excluded", "case05-cleaned", "case05-chart", "case05-statistics", "case05-workflow"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

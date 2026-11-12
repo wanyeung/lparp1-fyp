@@ -1,0 +1,86 @@
+import "../../../library/Studio.mls"
+open Studio
+
+module Experiment with
+  // Synthetic illustrative demo inputs, not measured experimental data.
+  // Edit these assumptions and rawReadings in source; all views recompute.
+  val minimumTemperatureC = 0
+  val maximumTemperatureC = 100
+  val acceptedSensorCode = 0
+  val referenceTemperatureC = 20
+
+  // Columns: sample ID, elapsed seconds, temperature in degC, sensor code.
+  // Keep times finite, nonnegative and in ascending order, with unique IDs.
+  // Code 0 means OK; code 1 is a sensor-reported error in this demo.
+  val rawReadings = [
+    ["S01", 0, 20.0, 0],
+    ["S02", 1, 23.1, 0],
+    ["S03", 2, 26.4, 0],
+    ["S04", 3, 29.2, 0],
+    ["S05", 4, 85.0, 1],
+    ["S06", 5, 34.8, 0],
+    ["S07", 6, 37.0, 0],
+    ["S08", 7, 225.0, 0],
+    ["S09", 8, 40.1, 0],
+    ["S10", 9, 41.2, 0],
+    ["S11", 10, 41.8, 0]
+  ]
+
+  fun isAccepted(reading) =
+    if reading.3 != acceptedSensorCode then false
+    else if reading.2 < minimumTemperatureC then false
+    else if reading.2 > maximumTemperatureC then false
+    else true
+
+  fun status(reading) =
+    if reading.3 != acceptedSensorCode then "EXCLUDED: sensor error code"
+    else if reading.2 < minimumTemperatureC then "EXCLUDED: below allowed temperature"
+    else if reading.2 > maximumTemperatureC then "EXCLUDED: above allowed temperature"
+    else "KEPT"
+
+  // The raw table is a direct CreateCell over the source list, so every cell is
+  // a green editable literal. Cleaning status is a separate derived table.
+  val rawHeaders = ["Sample", "Time (s)", "Temperature (degC)", "Sensor code"]
+  val statusHeaders = ["Sample", "Time (s)", "Temperature (degC)", "Sensor code", "Cleaning status"]
+  val statusRows = rawReadings.map(reading => [reading.0, reading.1, reading.2, reading.3, status(reading)])
+  val acceptedReadings = rawReadings.filter(reading => isAccepted(reading))
+  val rejectedReadings = rawReadings.filter(reading => if isAccepted(reading) then false else true)
+  val rejectedRows = rejectedReadings.map(reading => [reading.0, reading.1, reading.2, reading.3, status(reading)])
+
+  // Delta is temperature minus an editable reference, not an interpolated value.
+  val cleanedHeaders = ["Sample", "Time (s)", "Temperature (degC)", "Reference (degC)", "Rise (degC)"]
+  val cleanedReadings = acceptedReadings.map(reading => [reading.0, reading.1, reading.2, referenceTemperatureC, reading.2 - referenceTemperatureC])
+  val acceptedCount = acceptedReadings.length
+  val excludedCount = rejectedReadings.length
+  val totalTemperatureC = acceptedReadings.reduce((total, reading) => total + reading.2, 0)
+  // A text sentinel avoids presenting an invented mean if all rows are excluded.
+  val meanTemperatureC = if acceptedCount > 0 then totalTemperatureC / acceptedCount else "No accepted readings"
+  val retentionPercent = if rawReadings.length > 0 then 100 * acceptedCount / rawReadings.length else "No raw readings"
+
+  val scope = CreateText("case05-scope", "Synthetic experiment workflow", "Synthetic illustrative temperature readings for an engineering-report preparation example. These are not live or measured experimental data. Green cells in the assumptions and raw-reading tables are editable; dragging a green bar in the raw temperature chart edits the observed temperature literal. Filtering, diagnostics, statistics and charts are computed from the source and remain read-only with links back to the literals they use.")
+  val assumptions = CreateCell("case05-assumptions", "Editable cleaning assumptions (green cells patch this module)", ["Assumption", "Value", "Unit or meaning"], [
+    ["minimumTemperatureC", minimumTemperatureC, "degC; inclusive lower bound"],
+    ["maximumTemperatureC", maximumTemperatureC, "degC; inclusive upper bound"],
+    ["acceptedSensorCode", acceptedSensorCode, "only this sensor code is accepted"],
+    ["referenceTemperatureC", referenceTemperatureC, "degC; baseline for rise calculation"]
+  ])
+
+  // Named objects raw, status, cleaned and chart belong to the same ordinary module.
+  val raw = CreateCell("case05-raw", "Raw readings (green cells are editable source literals)", rawHeaders, rawReadings)
+  val rawTemperatureChart = BarChart("case05-raw-chart", "Raw temperatures (drag a green bar to edit the reading)", raw, "Time (s)", "Temperature (degC)")
+  val statusTable = DeriveCell("case05-status", "Raw readings with computed cleaning flags", raw, statusHeaders, statusRows)
+  val excluded = DeriveCell("case05-excluded", "Excluded readings: audit trail", raw, statusHeaders, rejectedRows)
+  val cleaned = DeriveCell("case05-cleaned", "Cleaned readings (read-only; source: raw)", raw, cleanedHeaders, cleanedReadings)
+  val chart = LineChart("case05-chart", "Accepted temperature and reference vs elapsed time", cleaned, "Time (s)", ["Temperature (degC)", "Reference (degC)"])
+  val statistics = DeriveCell("case05-statistics", "Computed cleaning summary", raw, ["Metric", "Value", "Unit"], [
+    ["Raw readings", rawReadings.length, "count"],
+    ["Accepted readings", acceptedCount, "count"],
+    ["Excluded readings", excludedCount, "count"],
+    ["Retained", retentionPercent, "%"],
+    ["Accepted mean temperature", meanTemperatureC, "degC"]
+  ])
+  val workflow = CreateText("case05-workflow", "Source and document editing limits", "Edit a green raw-reading cell, drag a green bar in the raw temperature chart, or edit the named assumptions. The combined workspace patches the owning literal in Experiment.mls, saves, recompiles with hkmc2 and refreshes the document. Status, excluded, cleaned, statistics and line-chart values are computed and read-only; clicking them reveals the source literals they depend on. The line chart joins retained samples across excluded timestamps; no missing sample is imputed. Cleaning is a simple code-and-range filter, not experimental validation.")
+  val report = CreateGroup("case05-experiment", "Experiment: raw, cleaned and chart together", [scope, assumptions, raw, rawTemperatureChart, statusTable, excluded, cleaned, chart, statistics, workflow])
+  val displayOrder = ["case05-scope", "case05-assumptions", "case05-raw", "case05-raw-chart", "case05-status", "case05-excluded", "case05-cleaned", "case05-chart", "case05-statistics", "case05-workflow"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

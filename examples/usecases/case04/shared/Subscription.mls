@@ -1,0 +1,57 @@
+// Synthetic illustrative demo inputs, not live market or experimental data.
+// case04.pdf supplies the $60 baseline / $75 proposal storyline only.
+// A monthly subscription period, drink cost and redemption counts are demo assumptions.
+module Subscription with
+  // Edit literals here, save source, then rebuild the report.
+  // Browser/grid-to-source editing is NOT implemented by these files.
+  val price = 60
+  val drinkCost = 2.5
+  val expectedRedemptions = 20
+  val scenarioPrice = 75
+  val maxRedemptions = 40
+  val redemptionStep = 5
+
+  // Units: USD/subscriber/month - USD/drink * drinks/subscriber/month.
+  // Contribution excludes fixed overhead, taxes, acquisition and payment fees.
+  fun contribution(subscriptionPrice, costPerDrink, redemptions) =
+    subscriptionPrice - costPerDrink * redemptions
+
+  fun redemptionGrid(limit, step) =
+    if limit <= 0 then [0]
+    else if step <= 0 then [0]
+    else [...redemptionGrid(limit - step, step), limit]
+
+  val monthlyDrinkCost = drinkCost * expectedRedemptions
+  val baselineContribution = contribution(price, drinkCost, expectedRedemptions)
+  val scenarioContribution = contribution(scenarioPrice, drinkCost, expectedRedemptions)
+  val contributionChange = scenarioContribution - baselineContribution
+  val redemptionCounts = redemptionGrid(maxRedemptions, redemptionStep)
+
+  val assumptionHeaders = ["Assumption", "Value", "Unit", "Source binding"]
+  val assumptionRows = [
+    ["Baseline price", price, "USD/subscriber/month", "Subscription.price"],
+    ["Drink cost", drinkCost, "USD/drink", "Subscription.drinkCost"],
+    ["Expected redemptions", expectedRedemptions, "drinks/subscriber/month", "Subscription.expectedRedemptions"],
+    ["Proposed price", scenarioPrice, "USD/subscriber/month", "Subscription.scenarioPrice"],
+    ["Sensitivity maximum", maxRedemptions, "drinks/subscriber/month", "Subscription.maxRedemptions"],
+    ["Sensitivity step", redemptionStep, "drinks/subscriber/month", "Subscription.redemptionStep"]
+  ]
+
+  val comparisonHeaders = ["Scenario", "Price (USD/subscriber/month)", "Redemptions (drinks/subscriber/month)", "Drink cost (USD/subscriber/month)", "Contribution (USD/subscriber/month)"]
+  val comparisonRows = [
+    ["Baseline", price, expectedRedemptions, monthlyDrinkCost, baselineContribution],
+    ["Proposed", scenarioPrice, expectedRedemptions, monthlyDrinkCost, scenarioContribution]
+  ]
+
+  val sensitivityHeaders = ["Redemptions (drinks/subscriber/month)", "Baseline contribution (USD/subscriber/month)", "Proposed contribution (USD/subscriber/month)"]
+  val sensitivityRows = redemptionCounts.map(n => [
+    n,
+    contribution(price, drinkCost, n),
+    contribution(scenarioPrice, drinkCost, n)
+  ])
+
+  val changeHeaders = ["Metric", "Value", "Unit"]
+  val changeRows = [
+    ["Price change", scenarioPrice - price, "USD/subscriber/month"],
+    ["Contribution change at equal redemptions", contributionChange, "USD/subscriber/month"]
+  ]
