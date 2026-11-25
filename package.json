@@ -1,11 +1,20 @@
 {
-  "name": "mls-loop",
-  "version": "0.0.1",
+  "name": "mlstudio",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Notebook → table → code loop, written in MLscript",
+  "description": "Table and chart views for MLscript programs, with edits written back to the source",
+  "author": "Wan Yeung",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wanyeung/lparp1-fyp.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "test": "node scripts/build.mjs && node --test \"src/test/js/**/*.test.mjs\""
+    "build": "node runtime/compile.mjs library build/library",
+    "test": "npm run build && node --test \"test/*.test.mjs\""
   }
 }

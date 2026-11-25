@@ -1,0 +1,25 @@
+// Categories credit: Cellery (UIST '26), https://cseweb.ucsd.edu/~mcoblenz/assets/pdf/uist26_cellery.pdf
+module Primitive with
+
+  fun table(name, value) =
+    { name: name, title: name, kind: "table", headers: value.0, rows: value.slice(1), children: [] }
+
+  fun list(name, value) =
+    { name: name, title: name, kind: "list", headers: ["value"], rows: value.map(x => [x]), children: [] }
+
+  fun atom(name, value) =
+    { name: name, title: name, kind: "atom", headers: ["value"], rows: [[value]], children: [] }
+
+  fun block(name, value) =
+    { name: name, title: name, kind: "block", headers: [], rows: [], children: globalThis.Object.entries(value).map(entry => make(entry.0, entry.1)) }
+
+  fun make(name, value) =
+    if value is Array then
+      if value.length > 0 then
+        if value.0 is Array then table(name, value)
+        else list(name, value)
+      else list(name, value)
+    else if value is {} then block(name, value)
+    else atom(name, value)
+
+  fun rename(primitive, title) = { ...primitive, title: title }
