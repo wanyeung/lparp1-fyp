@@ -1,0 +1,113 @@
+// @studio Student learning — grade book
+// One grade book, two cases. The grade report explains the policy and the
+// computed totals. The score sheet is what a student edits. Each case
+// contains its own subcases, and both cases read the same let bindings.
+
+// @document Grade report
+// id: report
+// includes: document:weight-policy, document:computed-totals
+// @enddocument
+
+// @document Weight policy
+// id: weight-policy
+// includes: doc:weight-policy, table:weights
+// @enddocument
+
+// @document Computed totals
+// id: computed-totals
+// includes: doc:computed-totals, table:grades, chart:totals
+// @enddocument
+
+// @document Score sheet
+// id: scores
+// includes: document:raw-scores, document:how-to-edit
+// @enddocument
+
+// @document Raw scores
+// id: raw-scores
+// includes: doc:raw-scores, table:students, chart:quizzes
+// @enddocument
+
+// @document How a student edits
+// id: how-to-edit
+// includes: doc:how-to-edit
+// @enddocument
+
+// @doc Shared weights
+// id: weight-policy
+// Quiz, lab, and exam are weighted 20, 30, and 50. Those three numbers are
+// the only policy inputs, and they are meant to add to 100.
+// Changing a weight rescales every student's total. The raw scores stay
+// where they are, on the score sheet.
+// @enddoc
+
+// @doc How the total is computed
+// id: computed-totals
+// Each total is (quiz × quiz weight + lab × lab weight + exam × exam weight) / 100.
+// Ada, Ben, and Cho therefore start at 78, 78, and 91.4.
+// The total cells are formulas. They can be read and followed back to a
+// score, and they cannot be overwritten.
+// @enddoc
+
+// @doc One row per student
+// id: raw-scores
+// Ada, Ben, and Cho are stored once. A row holds the name plus quiz, lab,
+// and exam marks. Nothing else in the file copies those marks by hand.
+// @enddoc
+
+// @doc What a student may change
+// id: how-to-edit
+// A green cell is a literal in this file. Editing Ada's quiz, or dragging
+// her quiz bar, rewrites that one number.
+// The grade report then recomputes from the same lets. Sorting the score
+// sheet changes the view only.
+// @enddoc
+
+// @chart Grade totals
+// id: totals
+// type: bar
+// source: grades
+// x: name
+// y: total
+// @endchart
+
+// @chart Quiz scores
+// id: quizzes
+// type: bar
+// source: students
+// x: name
+// y: quiz
+// @endchart
+
+module StudentLearning with
+  let weights = mut { quiz: 20, lab: 30, exam: 50 }
+
+  let students = [
+    mut { name: "Ada", quiz: 80, lab: 90, exam: 70 },
+    mut { name: "Ben", quiz: 60, lab: 70, exam: 90 },
+    mut { name: "Cho", quiz: 95, lab: 88, exam: 92 }
+  ]
+
+  let grades = [
+    mut {
+      name: students.0.name,
+      quiz: students.0.quiz,
+      lab: students.0.lab,
+      exam: students.0.exam,
+      total: (students.0.quiz * weights.quiz + students.0.lab * weights.lab + students.0.exam * weights.exam) / 100
+    },
+    mut {
+      name: students.1.name,
+      quiz: students.1.quiz,
+      lab: students.1.lab,
+      exam: students.1.exam,
+      total: (students.1.quiz * weights.quiz + students.1.lab * weights.lab + students.1.exam * weights.exam) / 100
+    },
+    mut {
+      name: students.2.name,
+      quiz: students.2.quiz,
+      lab: students.2.lab,
+      exam: students.2.exam,
+      total: (students.2.quiz * weights.quiz + students.2.lab * weights.lab + students.2.exam * weights.exam) / 100
+    }
+  ]

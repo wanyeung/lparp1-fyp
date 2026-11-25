@@ -1,0 +1,98 @@
+// @studio Algorithm benchmark — search timings
+// Linear search, binary search, and a hash table, each timed at 1 000
+// and 10 000 keys. The timing case stores the measurements. The speedup
+// case compares each run with linear search at the same input size.
+
+// @document Raw timings
+// id: timings
+// includes: document:one-thousand-keys, document:ten-thousand-keys
+// @enddocument
+
+// @document One thousand keys
+// id: one-thousand-keys
+// includes: doc:one-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document Ten thousand keys
+// id: ten-thousand-keys
+// includes: doc:ten-thousand-keys, table:runs, chart:times
+// @enddocument
+
+// @document Speedup report
+// id: report
+// includes: document:matched-sizes, document:linear-baseline
+// @enddocument
+
+// @document Same input size
+// id: matched-sizes
+// includes: doc:matched-sizes, table:comparison, chart:speedups
+// @enddocument
+
+// @document Linear search is the baseline
+// id: linear-baseline
+// includes: doc:linear-baseline, table:comparison, chart:speedups
+// @enddocument
+
+// @doc Lookups over 1 000 keys
+// id: one-thousand-keys
+// One lookup takes 12400 microseconds with linear search, 800 with binary
+// search, and 300 with the hash table. Dragging a bar records a new run
+// by rewriting that microseconds literal.
+// @enddoc
+
+// @doc Lookups over 10 000 keys
+// id: ten-thousand-keys
+// The larger table takes 128000, 1100, and 400 microseconds for the same
+// three algorithms. These rows sit in the same runs table as the 1 000-key
+// timings. They are a separate subcase because the comparison must not
+// mix the two sizes.
+// @enddoc
+
+// @doc Compare only matching sizes
+// id: matched-sizes
+// Binary search and the hash table at 1 000 keys are divided by the
+// 12400 microsecond linear search, not by the 10 000-key time.
+// The 10 000-key rows use 128000 as their own baseline.
+// @enddoc
+
+// @doc Why two speedups are exactly 1
+// id: linear-baseline
+// Speedup is baseline divided by the candidate. Linear search divided by
+// itself is 1 at both sizes. The other speedups are 15.5, 41.333, 116.364,
+// and 320. Those cells are formulas, so the speedup chart cannot be dragged.
+// @enddoc
+
+// @chart Measured time
+// id: times
+// type: bar
+// source: runs
+// x: label
+// y: microseconds
+// @endchart
+
+// @chart Speedup against linear search
+// id: speedups
+// type: bar
+// source: comparison
+// x: label
+// y: speedup
+// @endchart
+
+module AlgorithmBenchmark with
+  let runs = [
+    mut { label: "Linear 1k", algorithm: "Linear search", inputSize: 1000, microseconds: 12400 },
+    mut { label: "Binary 1k", algorithm: "Binary search", inputSize: 1000, microseconds: 800 },
+    mut { label: "Hash 1k", algorithm: "Hash lookup", inputSize: 1000, microseconds: 300 },
+    mut { label: "Linear 10k", algorithm: "Linear search", inputSize: 10000, microseconds: 128000 },
+    mut { label: "Binary 10k", algorithm: "Binary search", inputSize: 10000, microseconds: 1100 },
+    mut { label: "Hash 10k", algorithm: "Hash lookup", inputSize: 10000, microseconds: 400 }
+  ]
+
+  let comparison = [
+    mut { label: runs.0.label, inputSize: runs.0.inputSize, microseconds: runs.0.microseconds, speedup: runs.0.microseconds / runs.0.microseconds },
+    mut { label: runs.1.label, inputSize: runs.1.inputSize, microseconds: runs.1.microseconds, speedup: runs.0.microseconds / runs.1.microseconds },
+    mut { label: runs.2.label, inputSize: runs.2.inputSize, microseconds: runs.2.microseconds, speedup: runs.0.microseconds / runs.2.microseconds },
+    mut { label: runs.3.label, inputSize: runs.3.inputSize, microseconds: runs.3.microseconds, speedup: runs.3.microseconds / runs.3.microseconds },
+    mut { label: runs.4.label, inputSize: runs.4.inputSize, microseconds: runs.4.microseconds, speedup: runs.3.microseconds / runs.4.microseconds },
+    mut { label: runs.5.label, inputSize: runs.5.inputSize, microseconds: runs.5.microseconds, speedup: runs.3.microseconds / runs.5.microseconds }
+  ]

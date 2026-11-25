@@ -76,12 +76,12 @@ Demo video: https://youtu.be/dAxtzRr72uA
 - `runtime/`: the MLscript compiler bundle and standard library, `VERSION.md` for the commit, `Doc.md` for what is in it, and `compile.mjs`, which builds `library/` into `build/library/`.
 - `library/`: the loop itself, written in MLscript.
   - `model/`: `Primitive` is a table, a list, an atom or a block. `Sheet` holds primitives and records the `.mls` file it references and whether it is derived from other sheets. `Document` describes what to show: a sequence of imported primitives (optionally renamed) and Markdown text. One `.mls` file can have many documents. `Chart` lists Bar, Line and Pie, and a Document can chart columns of a table.
-  - `controller/`: receives a host's payload, builds the sheet and the default document of a saved file, and applies edits.
+  - `controller/`: receives a host's payload, builds the sheet and the default document of a saved file, and applies edits. `D3Manipulation/` holds chart drag code and a TODO, see its README.
   - `service/`: `Html.generateHtml` renders items for a webview, `Charts.js` draws the charts in the page (plain SVG, ported from ggongtaek's `media/webview.js`), `Source` finds things in the source text (a declaration, a table cell, the word under the cursor), `SourceEdit` rewrites one literal there, and `Scope` picks which tables the cursor is on.
   - `io/`: `Csv` reads CSV, `Export` writes `.mls` and `.html`.
 - `vscodehost/`: the VS Code extension, a thin host over `library/`.
 - `browserhost/`: the website, a thin host over `library/`.
-- `test/`: tests, and `fixtures/`: `demo.mls`.
+- `test/`: tests, and `fixtures/`: `demo.mls` and Owen's `usecases/`. The use cases are not wired in yet: the bundled compiler fails on three of them.
 
 ## Credits & Contact
 

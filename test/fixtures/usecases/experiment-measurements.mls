@@ -1,0 +1,84 @@
+// @studio Experimental measurements — spring length
+// Five trials from one caliper. The notebook case stores each reading.
+// The results case divides those readings into a length mean and a
+// temperature mean. Neither mean is typed in.
+
+// @document Lab notebook
+// id: notebook
+// includes: document:length-series, document:temperature-log
+// @enddocument
+
+// @document Length by trial
+// id: length-series
+// includes: doc:length-series, table:trials, chart:lengths
+// @enddocument
+
+// @document Temperature log
+// id: temperature-log
+// includes: doc:temperature-log, table:trials
+// @enddocument
+
+// @document Results
+// id: results
+// includes: document:length-mean, document:temperature-mean
+// @enddocument
+
+// @document Mean length
+// id: length-mean
+// includes: doc:length-mean, table:summary
+// @enddocument
+
+// @document Mean temperature
+// id: temperature-mean
+// includes: doc:temperature-mean, table:summary
+// @enddocument
+
+// @doc Five lengths from one caliper
+// id: length-series
+// The lengths are 102.4, 101.8, 103.0, 102.1, and 102.7 millimetres.
+// Dragging a bar rewrites that trial's length literal. The mean length
+// follows and stays read-only.
+// @enddoc
+
+// @doc Temperature is recorded, not plotted
+// id: temperature-log
+// Each trial also notes the room temperature: 21.0, 21.2, 21.1, 20.9,
+// and 21.0 degrees. Those cells are literals in the same rows as the
+// lengths. They are not on the length chart.
+// @enddoc
+
+// @doc Mean of the five lengths
+// id: length-mean
+// The mean length adds the five readings and divides by 5, which is 102.4.
+// There is no literal to edit on this subcase. Follow a source chip back
+// to the trial it uses.
+// @enddoc
+
+// @doc Mean of the five temperatures
+// id: temperature-mean
+// The mean temperature is the same kind of formula over the temperature
+// column, and it is 21.04. Changing a trial temperature updates this
+// number without a second place to type it.
+// @enddoc
+
+// @chart Length by trial
+// id: lengths
+// type: bar
+// source: trials
+// x: trial
+// y: length
+// @endchart
+
+module ExperimentMeasurements with
+  let trials = [
+    mut { trial: 1, temperature: 21.0, length: 102.4 },
+    mut { trial: 2, temperature: 21.2, length: 101.8 },
+    mut { trial: 3, temperature: 21.1, length: 103.0 },
+    mut { trial: 4, temperature: 20.9, length: 102.1 },
+    mut { trial: 5, temperature: 21.0, length: 102.7 }
+  ]
+
+  let summary = mut {
+    meanTemperature: (trials.0.temperature + trials.1.temperature + trials.2.temperature + trials.3.temperature + trials.4.temperature) / 5,
+    meanLength: (trials.0.length + trials.1.length + trials.2.length + trials.3.length + trials.4.length) / 5
+  }
