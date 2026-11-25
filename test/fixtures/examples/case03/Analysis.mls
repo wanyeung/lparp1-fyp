@@ -1,0 +1,15 @@
+import "../../../library/Studio.mls"
+import "./shared/Portfolio.mls"
+open Studio
+
+module Analysis with
+  // Synthetic illustrative inputs and all calculations live in shared/Portfolio.mls.
+  // Entry files compose documents only: no copied returns or computed result literals.
+  val context = CreateGroup("c03-analysis-context", "Scope and editable assumptions", [Portfolio.disclosure, Portfolio.method, Portfolio.assumptionsTable, Portfolio.allocationTable])
+  val monthlyReturns = CreateGroup("c03-analysis-monthly", "Source returns and derived monthly portfolios", [Portfolio.assetReturnsTable, Portfolio.portfolioReturnsTable])
+  val cumulative = CreateGroup("c03-analysis-cumulative", "Compounding and cumulative performance", [Portfolio.cumulativeReturnsTable, Portfolio.cumulativeChart])
+  val risk = CreateGroup("c03-analysis-risk", "Running-peak drawdowns and final figures", [Portfolio.drawdownTable, Portfolio.drawdownChart, Portfolio.endingFiguresTable])
+  val report = CreateGroup("c03-analysis-report", "Portfolio comparison — analyst working report", [context, monthlyReturns, cumulative, risk])
+  val displayOrder = ["c03-disclosure", "c03-method", "c03-assumptions", "c03-allocations", "c03-asset-returns", "c03-portfolio-returns", "c03-cumulative-returns", "c03-cumulative-chart", "c03-drawdowns", "c03-drawdown-chart", "c03-ending-figures"]
+  val document = DisplayOrdered(report, displayOrder)
+  val model = ModelOrdered(report, displayOrder)

@@ -81,7 +81,7 @@ Demo video: https://youtu.be/dAxtzRr72uA
   - `io/`: `Csv` reads CSV, `Export` writes `.mls` and `.html`.
 - `vscodehost/`: the VS Code extension, a thin host over `library/`.
 - `browserhost/`: the website, a thin host over `library/`.
-- `test/`: tests, and `fixtures/`: `demo.mls` and Owen's `usecases/`. The use cases are not wired in yet: the bundled compiler fails on three of them.
+- `test/`: tests, and `fixtures/`: `demo.mls`, Owen's `usecases/` and ggongtaek's `examples/` (two entry points sharing one module). The use cases and examples are not wired in yet: the bundled compiler fails on three of the use cases, and the examples import builders from ggongtaek's `Studio.mls`, which is not here.
 
 ## Credits & Contact
 
