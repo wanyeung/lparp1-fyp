@@ -7,6 +7,8 @@ import Chart from '../build/library/model/Chart.mjs'
 import Source from '../build/library/service/Source.mjs'
 import SourceEdit from '../build/library/service/SourceEdit.mjs'
 import Html from '../build/library/service/Html.mjs'
+import Csv from '../build/library/io/Csv.mjs'
+import Export from '../build/library/io/Export.mjs'
 import Controller from '../build/library/controller/Controller.mjs'
 
 const source = 'val sales = [\n  ["item", "units"],\n  ["Tea", 30],\n  ["Coffee, hot", 45.5]\n]\n'
@@ -97,6 +99,12 @@ test('html escapes values, carries the nonce, shows titles, and keeps blocks and
   assert.ok(html.includes('<h2>Head</h2>'))
   assert.ok(html.includes('body &lt;i&gt;'))
   assert.ok(html.includes('Not found: gone'))
+})
+
+test('csv parses quotes and numbers, export writes mls back', () => {
+  const rows = Csv.parse('item,units\n"Tea, green",30\nCoffee,4.5\n')
+  assert.deepEqual(rows, [['item', 'units'], ['Tea, green', 30], ['Coffee', 4.5]])
+  assert.equal(Export.mls('sales', rows), 'val sales = [\n  ["item", "units"],\n  ["Tea, green", 30],\n  ["Coffee", 4.5]\n]\n')
 })
 
 test('grid treats an empty array as an empty list', () => {

@@ -1,6 +1,6 @@
 {
   "name": "mlstudio",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Table and chart views for MLscript programs, with edits written back to the source",
@@ -16,6 +16,7 @@
   "scripts": {
     "build": "node runtime/compile.mjs library build/library",
     "test": "npm run build && node --test \"test/*.test.mjs\"",
-    "vscode": "npm run build && node vscodehost/launch.mjs"
+    "vscode": "npm run build && node vscodehost/launch.mjs",
+    "browser": "npm run build && node browserhost/serve.mjs"
   }
 }

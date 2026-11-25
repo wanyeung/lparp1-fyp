@@ -30,3 +30,21 @@ test('the vscode host runner reports compile errors instead of crashing', async 
   assert.ok(result.error.length > 0)
 })
 
+test('every module the browser host imports is served', async () => {
+  const seen = new Set()
+  const missing = []
+  const server = (await import('node:child_process')).spawn(process.execPath, [path.join(root, 'browserhost', 'serve.mjs')], { env: { ...process.env, PORT: '18081' } })
+  await new Promise((resolve) => server.stdout.once('data', resolve))
+  const visit = async (url) => {
+    if (seen.has(url)) return
+    seen.add(url)
+    const res = await fetch(url)
+    if (!res.ok) { missing.push(url); return }
+    const text = await res.text()
+    for (const m of text.matchAll(/(?:from|import)\s*["'](\.[^"']+\.m?js)["']/g)) await visit(new URL(m[1], url).href)
+  }
+  await visit('http://localhost:18081/browserhost/main.js')
+  server.kill()
+  assert.deepEqual(missing, [])
+  assert.ok(seen.size > 8)
+})

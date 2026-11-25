@@ -56,6 +56,7 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 ## Features
 
 1. Version 0.0.0, minimum loop: the core is written in MLscript and compiled to JavaScript. It decides whether a value is a single value, a list or a table (now `Primitive`).
+2. Version 0.1.0, clean skeleton: the table-to-code loop, demonstrated end to end with minimal manual effort and without AI. Save an `.mls` file, it compiles and runs in its own process, each top-level `val` appears as a grid, and editing a cell patches that literal in the source and runs again. Tables are arrays of rows with a header row. A CSV opens in the browser host and exports as `.mls` or `.html`. Charts (bar, column, pie, donut, radar, line, area, step, scatter, lollipop) are drawn with plain SVG; TODO: switch to D3. Excel import comes next.
 
 ## Installation Instructions
 
@@ -66,6 +67,7 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 ## Usage
 
 - VS Code: run `npm run vscode` (needs the `code` command on your PATH). It copies `test/fixtures` to `build/demo` and opens that folder, with `demo.mls`, in an Extension Development Host. Opening an `.mls` file opens the **Document View** in the Secondary Side Bar on the right (the MLscript icon there) by itself, and it never replaces the Explorer; the button at the right of the editor title bar, next to the other editor icons, or **MLscript: Open Document View** brings it back. The panel follows the cursor: on a variable or inside its table it shows that table, inside a function it shows the tables the function uses, and on a blank line or outside any declaration it shows the whole file. It needs VS Code 1.104 or newer. Settings `mlstudio.autoOpen` and `mlstudio.followCursor` turn the two behaviours off. If VS Code asks whether you trust the folder, choose Trust: the extension runs the code in your `.mls` files, so VS Code keeps it disabled in Restricted Mode. Edit a green cell and press Enter: the source is patched, saved and run again.
+- Browser: run `npm run browser` and open http://localhost:8080/. It starts with a small CSV table. Open your own CSV, edit cells, download the `.mls` or the `.html`, or pick a view from **View Documentations**.
 
 Demo video: https://youtu.be/dAxtzRr72uA
 
@@ -76,7 +78,9 @@ Demo video: https://youtu.be/dAxtzRr72uA
   - `model/`: `Primitive` is a table, a list, an atom or a block. `Sheet` holds primitives and records the `.mls` file it references and whether it is derived from other sheets. `Document` describes what to show: a sequence of imported primitives (optionally renamed) and Markdown text. One `.mls` file can have many documents. `Chart` lists Bar, Line and Pie, and a Document can chart columns of a table.
   - `controller/`: receives a host's payload, builds the sheet and the default document of a saved file, and applies edits.
   - `service/`: `Html.generateHtml` renders items for a webview, `Charts.js` draws the charts in the page (plain SVG, ported from ggongtaek's `media/webview.js`), `Source` finds things in the source text (a declaration, a table cell, the word under the cursor), `SourceEdit` rewrites one literal there, and `Scope` picks which tables the cursor is on.
+  - `io/`: `Csv` reads CSV, `Export` writes `.mls` and `.html`.
 - `vscodehost/`: the VS Code extension, a thin host over `library/`.
+- `browserhost/`: the website, a thin host over `library/`.
 - `test/`: tests, and `fixtures/`: `demo.mls`.
 
 ## Credits & Contact

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MLscript Studio Online</title>
+<style>
+body{font:14px system-ui,sans-serif;margin:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;height:100vh}
+header{grid-column:1/3;padding:8px 12px;border-bottom:1px solid #8884;display:flex;gap:8px;align-items:center}
+textarea,iframe{border:0;width:100%;height:100%;box-sizing:border-box}
+textarea{font:13px ui-monospace,monospace;padding:12px;resize:none}
+#status{color:#c00}
+</style>
+</head>
+<body>
+<header>
+<input type="file" id="file" accept=".csv">
+<button id="saveMls">Download .mls</button>
+<button id="saveHtml">Download .html</button>
+<select id="docs">
+<option value="A" selected disabled hidden>View Documentations</option>
+<option value="A">DocumentView A</option>
+<option value="B">DocumentView B</option>
+<option value="C">DocumentView C</option>
+</select>
+<span id="status"></span>
+</header>
+<textarea id="source" spellcheck="false"></textarea>
+<iframe id="view" sandbox="allow-scripts"></iframe>
+<script type="module" src="main.js"></script>
+</body>
+</html>
