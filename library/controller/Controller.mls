@@ -1,0 +1,24 @@
+import "../model/Primitive.mls"
+import "../model/Sheet.mls"
+import "../model/Document.mls"
+import "../service/Source.mls"
+import "../service/SourceEdit.mls"
+import "../service/Scope.mls"
+
+module Controller with
+
+  fun primitives(payload) =
+    globalThis.Object.entries(payload.exports)
+      .filter(entry => entry.0.startsWith("_$_modulePrivate_$_"))
+      .map(entry => Primitive.make(entry.0.slice(19), entry.1))
+      .sort((a, b) => Source.position(payload.source, a.name) - Source.position(payload.source, b.name))
+
+  fun sheet(payload) = Sheet.make(payload.file, payload.file, primitives(payload))
+
+  fun document(payload) = Document.ofFile(payload.file, primitives(payload))
+
+  fun edit(payload) =
+    let shift = if payload.kind == "table" then 1 else 0
+    SourceEdit.setCell(payload.source, payload.name, payload.row + shift, payload.col, payload.text)
+
+  fun focus(source, offset, names) = Scope.names(source, offset, names)

@@ -1,0 +1,56 @@
+module Html with
+
+  fun esc(value) =
+    globalThis.String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;")
+
+  fun cell(g, r, c, v, editable) =
+    if editable then
+      "<td contenteditable=\"true\" data-name=\"" + esc(g.name) + "\" data-kind=\"" + g.kind +
+        "\" data-row=\"" + r + "\" data-col=\"" + c + "\" data-old=\"" + esc(v) + "\">" + esc(v) + "</td>"
+    else "<td>" + esc(v) + "</td>"
+
+  fun table(g, editable) =
+    "<section><h2>" + esc(g.title) + " <small>" + g.kind + "</small></h2><table><thead><tr>" +
+      g.headers.map(h => "<th>" + esc(h) + "</th>").join("") + "</tr></thead><tbody>" +
+      g.rows.map((row, r) => "<tr>" + row.map((v, c) => cell(g, r, c, v, editable)).join("") + "</tr>").join("") +
+      "</tbody></table></section>"
+
+  fun block(g) =
+    "<section class=\"block\"><h2>" + esc(g.title) + " <small>block</small></h2>" +
+      g.children.map(child => view(child, false)).join("") + "</section>"
+
+  fun markdownLine(line) =
+    if line.startsWith("## ") then "<h3>" + esc(line.slice(3)) + "</h3>"
+    else if line.startsWith("# ") then "<h2>" + esc(line.slice(2)) + "</h2>"
+    else if line.trim() == "" then ""
+    else "<p>" + esc(line) + "</p>"
+
+  fun markdown(text) = "<section>" + text.split("\n").map(line => markdownLine(line)).join("") + "</section>"
+
+  fun chartView(p) =
+    "<section><h2>" + esc(p.title) + " <small>chart</small></h2><div class=\"chart\" data-chart=\"" + esc(globalThis.JSON.stringify(p)) + "\"></div></section>"
+
+  fun view(p, editable) =
+    if p.kind == "markdown" then markdown(p.text)
+    else if p.kind == "missing" then "<p class=\"error\">Not found: " + esc(p.name) + "</p>"
+    else if p.kind == "chart" then chartView(p)
+    else if p.kind == "block" then block(p)
+    else table(p, editable)
+
+  val style = "body{font:14px var(--vscode-font-family,sans-serif);color:var(--vscode-editor-foreground,#222);background:var(--vscode-editor-background,#fff);padding:12px}h2{font-size:15px}small{opacity:.6;font-weight:normal}table{border-collapse:collapse;margin-bottom:20px}th,td{border:1px solid var(--vscode-panel-border,#8884);padding:4px 10px;text-align:left}th{background:var(--vscode-editorWidget-background,#8881)}td[contenteditable]{background:#2e7d3222}td:focus{outline:2px solid var(--vscode-focusBorder,#07f)}.block{border-left:3px solid #8886;padding-left:12px}.chart-content{display:grid;gap:10px}.chart-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.source{color:var(--vscode-descriptionForeground,#666);font-size:.8em}.type-row{display:flex;flex-wrap:wrap;gap:5px}.type-row button{border:1px solid var(--vscode-editorWidget-border,#ccc);background:var(--vscode-input-background,#fff);color:inherit;border-radius:3px;padding:3px 8px;cursor:pointer;font-size:.78em}.type-row button.on{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-color:transparent}.chart-empty{display:grid;place-items:center;min-height:130px;color:var(--vscode-descriptionForeground,#777);font-size:.88em;border:1px dashed var(--vscode-editorWidget-border,#ddd);border-radius:4px}.bar-rows{display:grid;gap:7px;padding:4px 0}.bar-row{display:grid;grid-template-columns:minmax(80px,150px) 1fr minmax(52px,auto);align-items:center;gap:9px}.bar-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82em;color:var(--vscode-descriptionForeground,#555)}.track{position:relative;height:20px;background:color-mix(in srgb,var(--vscode-descriptionForeground,#888) 14%,transparent);border-radius:4px;overflow:hidden}.zero-line{position:absolute;top:0;bottom:0;width:1px;background:var(--vscode-editor-foreground,#555);opacity:.45}.fill{position:absolute;top:0;bottom:0;background:var(--vscode-charts-blue,#3794ff);border-radius:3px;min-width:1px}.bar-value{text-align:right;font:.82em var(--vscode-editor-font-family,monospace)}.columns{display:flex;align-items:stretch;gap:9px;height:190px;padding:8px 2px 0;border-bottom:1px solid var(--vscode-editorWidget-border,#ccc)}.column{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}.col-value,.col-label{font-size:.76em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.col-track{position:relative;flex:1;width:100%;max-width:46px;background:color-mix(in srgb,var(--vscode-descriptionForeground,#888) 14%,transparent);border-radius:4px;overflow:hidden}.col-zero{position:absolute;left:0;right:0;height:1px;background:var(--vscode-editor-foreground,#555);opacity:.45}.col-fill{position:absolute;left:0;right:0;background:var(--vscode-charts-blue,#3794ff);border-radius:3px}.legend{display:flex;flex-wrap:wrap;gap:7px 16px;font-size:.8em;color:var(--vscode-descriptionForeground,#555)}.legend-row{display:inline-flex;align-items:center;gap:6px}.swatch{width:10px;height:10px;border-radius:2px;flex:0 0 auto}.legend-value{color:var(--vscode-editor-foreground,#333)}.pie-layout{display:flex;align-items:center;gap:22px;flex-wrap:wrap}.pie-svg{width:190px;height:190px;flex:0 0 auto}.series-svg{width:100%;height:230px;display:block}.series-svg .grid{stroke:var(--vscode-editorWidget-border,#ddd);stroke-width:1}.series-svg text{fill:var(--vscode-descriptionForeground,#666);font-size:10px}.series-svg .line{fill:none;stroke-width:2.2}.series-svg .area{opacity:.22}.series-svg .dot{stroke:var(--vscode-editor-background,#fff);stroke-width:1.5}.series-svg .stem{stroke-width:1.5;opacity:.8}.error{color:var(--vscode-errorForeground,#c00);white-space:pre-wrap}"
+
+  val script = "const api = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: m => window.parent.postMessage(m, '*') };document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('td[data-name]')) { e.preventDefault(); e.target.blur(); } });document.addEventListener('focusout', e => { const t = e.target; if (t.matches && t.matches('td[data-name]') && t.textContent !== t.dataset.old) api.postMessage({ type: 'edit', name: t.dataset.name, kind: t.dataset.kind, row: Number(t.dataset.row), col: Number(t.dataset.col), text: t.textContent }); });"
+
+  fun page(body, nonce, charts) =
+    "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">" +
+      "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'nonce-" + nonce + "'; script-src 'nonce-" + nonce + "';\">" +
+      "<title>MLscript Document View</title><style nonce=\"" + nonce + "\">" + style + "</style></head><body>" + body +
+      "<script nonce=\"" + nonce + "\">" + script + "</script><script nonce=\"" + nonce + "\">" + charts + "</script></body></html>"
+
+  fun generateHtml(items, nonce, charts) = page(items.map(p => view(p, true)).join(""), nonce, charts)
+
+  fun failure(message, nonce) = page("<pre class=\"error\">" + esc(message) + "</pre>", nonce, "")

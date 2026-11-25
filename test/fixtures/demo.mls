@@ -1,0 +1,9 @@
+val sales = [
+  ["item", "units", "price"],
+  ["Tea", 30, 2.5],
+  ["Coffee", 45, 3]
+]
+
+val teams = ["Engineering", "Design", "Ops"]
+
+val total = 75

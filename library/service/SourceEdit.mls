@@ -1,0 +1,20 @@
+import "./Source.mls"
+
+module SourceEdit with
+
+  fun literal(old, text) =
+    let t = text.trim()
+    if old.startsWith("\"") then { ok: true, text: globalThis.JSON.stringify(text) }
+    else if old == "true" || old == "false" then
+      if t == "true" || t == "false" then { ok: true, text: t } else { ok: false, error: "Enter true or false." }
+    else if t != "" && globalThis.Number.isFinite(globalThis.Number(t)) then { ok: true, text: t }
+    else { ok: false, error: "Enter a number for this cell." }
+
+  fun setCell(source, name, row, col, text) =
+    let span = Source.locate(source, name, row, col)
+    if span is null then { ok: false, error: "That cell is not a plain literal in the source." }
+    else
+      let old = source.slice(span.0, span.1)
+      let lit = literal(old, text)
+      if lit.ok then { ok: true, source: source.slice(0, span.0) + lit.text + source.slice(span.1) }
+      else lit

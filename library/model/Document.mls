@@ -1,0 +1,52 @@
+import "./Primitive.mls"
+
+module Document with
+
+  fun use(name) = { kind: "import", name: name, title: name }
+
+  fun useAs(name, title) = { kind: "import", name: name, title: title }
+
+  fun text(markdown) = { kind: "markdown", text: markdown }
+
+  fun custom(name, file, entries) = { name: name, file: file, entries: entries }
+
+  fun ofFile(file, primitives) = custom(file, file, primitives.map(p => use(p.name)))
+
+  fun ofSheet(sheet) = custom(sheet.name, sheet.meta.file, sheet.primitives.map(p => use(p.name)))
+
+  fun forFile(documents, file) = documents.filter(d => d.file == file)
+
+  fun chart(family, title, source, x, ys) =
+    { kind: "chart", chart: family, title: title, source: source, x: x, ys: ys }
+
+  fun missing(name) = { name: name, title: name, kind: "missing" }
+
+  fun column(grid, y) =
+    { name: y, values: grid.rows.map(row => row.at(grid.headers.indexOf(y))) }
+
+  fun chartOf(entry, grid) =
+    { name: entry.title, title: entry.title, kind: "chart", chart: entry.chart, source: entry.source, x: entry.x,
+      labels: grid.rows.map(row => row.at(grid.headers.indexOf(entry.x))),
+      series: entry.ys.map(y => column(grid, y)) }
+
+  fun chartItem(entry, available) =
+    let hits = available.filter(p => p.name == entry.source && p.kind == "table")
+    if hits.length == 0 then missing(entry.title)
+    else if hits.0.headers.indexOf(entry.x) < 0 then missing(entry.title)
+    else chartOf(entry, hits.0)
+
+  fun importItem(entry, available) =
+    let hits = available.filter(p => p.name == entry.name)
+    if hits.length == 0 then missing(entry.name)
+    else Primitive.rename(hits.0, entry.title)
+
+  fun item(entry, available) =
+    if entry.kind == "markdown" then { name: "", title: "", kind: "markdown", text: entry.text }
+    else if entry.kind == "chart" then chartItem(entry, available)
+    else importItem(entry, available)
+
+  fun resolve(document, available) = document.entries.map(entry => item(entry, available))
+
+  fun focus(items, names) =
+    let hits = items.filter(item => names.includes(item.name) || (item.kind == "chart" && names.includes(item.source)))
+    if names.length == 0 || hits.length == 0 then items else hits

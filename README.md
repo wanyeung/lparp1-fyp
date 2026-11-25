@@ -61,17 +61,23 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 1. Install Node.js 22 (the version this was tested on).
 2. Clone this repository.
-3. Run `npm test`. It compiles `library/` into `build/library` and runs the tests. There is nothing else to install.
+3. Run `npm test`. It compiles `library/` into `build/library` and runs the tests, including the whole loop without any editor. There is nothing else to install.
 
 ## Usage
+
+- VS Code: run `npm run vscode` (needs the `code` command on your PATH). It copies `test/fixtures` to `build/demo` and opens that folder, with `demo.mls`, in an Extension Development Host. Opening an `.mls` file opens the **Document View** in the Secondary Side Bar on the right (the MLscript icon there) by itself, and it never replaces the Explorer; the button at the right of the editor title bar, next to the other editor icons, or **MLscript: Open Document View** brings it back. The panel follows the cursor: on a variable or inside its table it shows that table, inside a function it shows the tables the function uses, and on a blank line or outside any declaration it shows the whole file. It needs VS Code 1.104 or newer. Settings `mlstudio.autoOpen` and `mlstudio.followCursor` turn the two behaviours off. If VS Code asks whether you trust the folder, choose Trust: the extension runs the code in your `.mls` files, so VS Code keeps it disabled in Restricted Mode. Edit a green cell and press Enter: the source is patched, saved and run again.
 
 Demo video: https://youtu.be/dAxtzRr72uA
 
 ## Layout
 
 - `runtime/`: the MLscript compiler bundle and standard library, `VERSION.md` for the commit, `Doc.md` for what is in it, and `compile.mjs`, which builds `library/` into `build/library/`.
-- `library/model/Primitive.mls`: decides whether a value is a table, a list, an atom or a block.
-- `test/`: tests.
+- `library/`: the loop itself, written in MLscript.
+  - `model/`: `Primitive` is a table, a list, an atom or a block. `Sheet` holds primitives and records the `.mls` file it references and whether it is derived from other sheets. `Document` describes what to show: a sequence of imported primitives (optionally renamed) and Markdown text. One `.mls` file can have many documents. `Chart` lists Bar, Line and Pie, and a Document can chart columns of a table.
+  - `controller/`: receives a host's payload, builds the sheet and the default document of a saved file, and applies edits.
+  - `service/`: `Html.generateHtml` renders items for a webview, `Charts.js` draws the charts in the page (plain SVG, ported from ggongtaek's `media/webview.js`), `Source` finds things in the source text (a declaration, a table cell, the word under the cursor), `SourceEdit` rewrites one literal there, and `Scope` picks which tables the cursor is on.
+- `vscodehost/`: the VS Code extension, a thin host over `library/`.
+- `test/`: tests, and `fixtures/`: `demo.mls`.
 
 ## Credits & Contact
 
