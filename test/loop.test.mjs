@@ -10,7 +10,7 @@ const root = path.resolve(import.meta.dirname, '..')
 test('save, run, show, edit, patch, run again', async () => {
   const dir = await mkdtemp(path.join(root, 'build', 'loop-'))
   const file = path.join(dir, 'demo.mls')
-  await copyFile(path.join(root, 'test', 'fixtures', 'demo.mls'), file)
+  await copyFile(path.join(root, 'test', 'fixtures', 'table.mls'), file)
 
   const run = async () => {
     const compiled = await compileFile(file)
@@ -24,7 +24,7 @@ test('save, run, show, edit, patch, run again', async () => {
   assert.equal(before.rows[0][1], 30)
 
   const source = await readFile(file, 'utf8')
-  const edit = Controller.edit({ source, name: 'sales', kind: 'table', row: 0, col: 1, text: '99' })
+  const edit = Controller.edit({ source, path: ['sales'], kind: 'table', row: 0, col: 1, text: '99' })
   assert.ok(edit.ok)
   await writeFile(file, edit.source)
 

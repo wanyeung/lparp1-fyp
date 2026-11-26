@@ -1,114 +1,23 @@
-// @studio Business model — café unit economics
-// Latte, tea, and pastry share one fixed cost. The operations case records
-// what is sold. The decision case asks whether the pastry line still pays
-// for itself after that shared cost.
+val notes = "# Business model: cafe unit economics\nLatte, tea and pastry share one fixed cost. Contribution is (price - variable cost) x units, so it is computed and cannot be dragged. Profit subtracts the fixed cost once.\nSetting pastry units to 0 drops that line to 0 and profit to 880, so the pastry line is not needed to cover the fixed cost."
 
-// @document Operations sheet
-// id: operations
-// includes: document:menu-prices, document:contribution-lines
-// @enddocument
+val fixedCost = 4000
 
-// @document Menu prices and units
-// id: menu-prices
-// includes: doc:menu-prices, table:products, chart:units
-// @enddocument
+val products = [
+  ["product", "price", "units", "variableCost"],
+  ["Latte", 38, 120, 12],
+  ["Tea", 28, 80, 6],
+  ["Pastry", 22, 60, 9]
+]
 
-// @document Contribution by product
-// id: contribution-lines
-// includes: doc:contribution-lines, table:contributions, chart:contribution
-// @enddocument
+fun total(rows, f) = rows.slice(1).reduce((sum, r) => sum + f(r), 0)
 
-// @document Decision note
-// id: decision
-// includes: document:shared-cost, document:profit-line
-// @enddocument
+val contributions = [["product", "units", "contribution"]].concat(products.slice(1).map(p => [p.0, p.2, (p.1 - p.3) * p.2]))
 
-// @document Shared fixed cost
-// id: shared-cost
-// includes: doc:shared-cost, table:assumptions
-// @enddocument
+val summary = [
+  ["revenue", "variableCost", "fixedCost", "profit"],
+  [total(products, p => p.1 * p.2), total(products, p => p.3 * p.2), fixedCost, total(products, p => p.1 * p.2) - total(products, p => p.3 * p.2) - fixedCost]
+]
 
-// @document Profit after fixed cost
-// id: profit-line
-// includes: doc:profit-line, table:summary
-// @enddocument
+val units = { chart: "Bar", source: "products", x: "product", ys: ["units"] }
 
-// @doc What the counter sells
-// id: menu-prices
-// Latte is 38 for 120 cups, tea is 28 for 80 cups, and pastry is 22 for
-// 60 pieces. Variable cost is 12, 6, and 9 on those same rows.
-// Dragging a units bar rewrites that product's unit literal.
-// @enddoc
-
-// @doc Contribution is not typed in
-// id: contribution-lines
-// Contribution is (price − variable cost) × units: 3120, 1760, and 780.
-// The contribution chart reads those formulas, so its bars cannot be
-// dragged. Setting pastry units to 0 drops that line to 0.
-// @enddoc
-
-// @doc One cost for the whole café
-// id: shared-cost
-// Fixed cost is 4000, stored once. It is not split across latte, tea,
-// and pastry. Editing it here changes profit only through the formula.
-// @enddoc
-
-// @doc Whether pastry still earns its place
-// id: profit-line
-// Revenue is 8120 and variable cost is 2460, so contribution before rent
-// and wages is 5660. Profit subtracts the 4000 fixed cost once and is 1660.
-// Zero pastry units leave profit at 880. The pastry line is not required
-// for the café to cover the fixed cost.
-// @enddoc
-
-// @chart Units sold
-// id: units
-// type: bar
-// source: products
-// x: product
-// y: units
-// @endchart
-
-// @chart Contribution
-// id: contribution
-// type: bar
-// source: contributions
-// x: product
-// y: contribution
-// @endchart
-
-module BusinessModel with
-  let assumptions = mut { fixedCost: 4000 }
-
-  let products = [
-    mut { product: "Latte", price: 38, units: 120, variableCost: 12 },
-    mut { product: "Tea", price: 28, units: 80, variableCost: 6 },
-    mut { product: "Pastry", price: 22, units: 60, variableCost: 9 }
-  ]
-
-  let contributions = [
-    mut {
-      product: products.0.product,
-      units: products.0.units,
-      contribution: (products.0.price - products.0.variableCost) * products.0.units
-    },
-    mut {
-      product: products.1.product,
-      units: products.1.units,
-      contribution: (products.1.price - products.1.variableCost) * products.1.units
-    },
-    mut {
-      product: products.2.product,
-      units: products.2.units,
-      contribution: (products.2.price - products.2.variableCost) * products.2.units
-    }
-  ]
-
-  let summary = [
-    mut {
-      revenue: products.0.price * products.0.units + products.1.price * products.1.units + products.2.price * products.2.units,
-      variableCost: products.0.variableCost * products.0.units + products.1.variableCost * products.1.units + products.2.variableCost * products.2.units,
-      fixedCost: assumptions.fixedCost,
-      profit: products.0.price * products.0.units + products.1.price * products.1.units + products.2.price * products.2.units - products.0.variableCost * products.0.units - products.1.variableCost * products.1.units - products.2.variableCost * products.2.units - assumptions.fixedCost
-    }
-  ]
+val contribution = { chart: "Bar", source: "contributions", x: "product", ys: ["contribution"] }

@@ -1,0 +1,21 @@
+import "./shared/Subscription.mls"
+
+val context = "# Retail manager: subscription price review\nAn analyst shares a subscription model with an operations manager who is considering a price change from $60 to $75. This demo compares both prices before a pilot. All inputs are synthetic assumptions, and a monthly subscription period is assumed."
+
+val assumptions = Subscription.assumptions
+
+val assumptionsChart = { chart: "Bar", source: "assumptions", x: "Assumption", ys: ["Value"] }
+
+val formula = "# Contribution\nMonthly contribution per subscriber = subscription price - drink cost x redemptions. Both prices use the same expected redemptions and cost. Contribution is not net profit: fixed overhead, taxes, acquisition costs and payment fees are excluded, and no demand response to price is modeled."
+
+val comparison = Subscription.comparison
+
+val comparisonChart = { chart: "Bar", source: "comparison", x: "Scenario", ys: ["Contribution"] }
+
+val change = Subscription.change
+
+val sensitivity = Subscription.sensitivity
+
+val sensitivityChart = { chart: "Line", source: "sensitivity", x: "Redemptions", ys: ["Baseline", "Proposed"] }
+
+val interpretation = "# Reading the sensitivity\nThe two lines are calculated at every redemption count. Negative contribution is kept: each extra redemption reduces contribution by the drink cost. Changing a price moves its line, and changing the drink cost changes both slopes."

@@ -7,3 +7,6 @@ val sales = [
 val teams = ["Engineering", "Design", "Ops"]
 
 val total = 75
+
+module table with
+  val grid = sales
