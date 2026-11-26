@@ -1,72 +1,66 @@
 val monthlyAssetReturnsPercent = [
-  ["Month", "Equity (%)", "Bond (%)"],
-  [1, 3.2, 0.7],
-  [2, -4.5, 0.4],
-  [3, -6.0, -0.8],
-  [4, 2.4, 0.5],
-  [5, 4.6, 0.9],
-  [6, 1.1, 0.3],
-  [7, -3.7, -0.4],
-  [8, 5.2, 1.0],
-  [9, 2.8, 0.6],
-  [10, -1.9, 0.2],
-  [11, 4.1, 0.8],
-  [12, 2.6, 0.4],
-  [13, -5.4, -0.6],
-  [14, -2.2, 0.1],
-  [15, 3.9, 0.7],
-  [16, 4.7, 0.5],
-  [17, 1.5, 0.4],
-  [18, 2.3, 0.6]
+  ["Month", "Equity return (%)", "Bond return (%)"],
+  ["Jan 2025", 3.2, 0.7],
+  ["Feb 2025", -4.5, 0.4],
+  ["Mar 2025", -6.0, -0.8],
+  ["Apr 2025", 2.4, 0.5],
+  ["May 2025", 4.6, 0.9],
+  ["Jun 2025", 1.1, 0.3],
+  ["Jul 2025", -3.7, -0.4],
+  ["Aug 2025", 5.2, 1.0],
+  ["Sep 2025", 2.8, 0.6],
+  ["Oct 2025", -1.9, 0.2],
+  ["Nov 2025", 4.1, 0.8],
+  ["Dec 2025", 2.6, 0.4],
+  ["Jan 2026", -5.4, -0.6],
+  ["Feb 2026", -2.2, 0.1],
+  ["Mar 2026", 3.9, 0.7],
+  ["Apr 2026", 4.7, 0.5],
+  ["May 2026", 1.5, 0.4],
+  ["Jun 2026", 2.3, 0.6]
 ]
-
-val initialCapitalUsd = 100000
-val defensiveEquityWeight = 0.2
-val balancedEquityWeight = 0.6
-val growthEquityWeight = 0.8
-val monthlyCostPercent = 0
-val displayDecimals = 2
-
-val allocations = [
-  ["Allocation", "Equity weight", "Bond weight"],
-  ["Defensive", defensiveEquityWeight, 1 - defensiveEquityWeight],
-  ["Balanced", balancedEquityWeight, 1 - balancedEquityWeight],
-  ["Growth", growthEquityWeight, 1 - growthEquityWeight]
-]
-
-fun returnRows() = monthlyAssetReturnsPercent.slice(1)
-fun allocationRows() = allocations.slice(1)
-fun roundDisplay(value) = globalThis.Math.round(value * globalThis.Math.pow(10, displayDecimals)) / globalThis.Math.pow(10, displayDecimals)
-fun monthlyPortfolioPercent(row, allocation) = row.1 * allocation.1 + row.2 * allocation.2 - monthlyCostPercent
-fun nextWealth(previous, row, allocation) = previous.1 * (1 + monthlyPortfolioPercent(row, allocation) / 100)
-fun runningPeak(previous, wealth) = if wealth > previous.2 then wealth else previous.2
-fun makeState(month, wealth, peak) = [month, wealth, peak, 100 * (wealth / initialCapitalUsd - 1), 100 * (wealth / peak - 1)]
-fun advance(previous, row, allocation) = makeState(row.0, nextWealth(previous, row, allocation), runningPeak(previous, nextWealth(previous, row, allocation)))
-fun simulate(allocation) = returnRows().reduce((path, row) => [...path, advance(path.at(-1), row, allocation)], [[0, initialCapitalUsd, initialCapitalUsd, 0, 0]])
-fun allocationPaths() = allocationRows().map(allocation => simulate(allocation))
-fun pathState(a, index) = allocationPaths().at(a).at(index)
-fun monthNumbers() = [0, ...returnRows().map(row => row.0)]
-fun monthIndexes(n) = if n <= 0 then [0] else [...monthIndexes(n - 1), n]
-fun pathIndexes() = monthIndexes(returnRows().length)
-fun comparisonHeaders() = ["Month", allocationRows().at(0).at(0), allocationRows().at(1).at(0), allocationRows().at(2).at(0)]
-fun monthlyComparisonRow(row) = [row.0, roundDisplay(monthlyPortfolioPercent(row, allocationRows().at(0))), roundDisplay(monthlyPortfolioPercent(row, allocationRows().at(1))), roundDisplay(monthlyPortfolioPercent(row, allocationRows().at(2)))]
-fun cumulativeComparisonRow(index) = [monthNumbers().at(index), pathState(0, index).at(3), pathState(1, index).at(3), pathState(2, index).at(3)]
-fun drawdownComparisonRow(index) = [monthNumbers().at(index), pathState(0, index).at(4), pathState(1, index).at(4), pathState(2, index).at(4)]
-fun worstDrawdownPercent(path) = path.reduce((worst, state) => if state.4 < worst then state.4 else worst, 0)
-fun endingRow(index) = [allocationRows().at(index).at(0), 100 * allocationRows().at(index).at(1), 100 * allocationRows().at(index).at(2), roundDisplay(pathState(index, returnRows().length).at(1)), roundDisplay(pathState(index, returnRows().length).at(3)), roundDisplay(worstDrawdownPercent(allocationPaths().at(index)))]
 
 val assumptionsTable = [
-  ["Parameter", "Value", "Unit / meaning"],
-  ["initialCapitalUsd", initialCapitalUsd, "USD, positive"],
-  ["defensiveEquityWeight", defensiveEquityWeight, "Equity fraction, 0-1; bond weight is its complement"],
-  ["balancedEquityWeight", balancedEquityWeight, "Equity fraction, 0-1; bond weight is its complement"],
-  ["growthEquityWeight", growthEquityWeight, "Equity fraction, 0-1; bond weight is its complement"],
-  ["monthlyCostPercent", monthlyCostPercent, "Monthly return percentage points"],
-  ["displayDecimals", displayDecimals, "Displayed decimal places"],
-  ["months", returnRows().length, "Sequential synthetic months"]
+  ["Assumption", "Value"],
+  ["Starting capital (USD)", 100000],
+  ["Monthly cost (percentage points per month)", 0]
 ]
 
-val allocationTable = [["Allocation", "Equity weight (%)", "Bond weight (%)"]].concat(allocationRows().map(a => [a.0, 100 * a.1, 100 * a.2]))
+val allocations = [
+  ["Allocation", "Equity weight (%)", "Bond weight (%)"],
+  ["Defensive", 20, 80],
+  ["Balanced", 60, 40],
+  ["Growth", 80, 20]
+]
+
+fun startingCapital() = assumptionsTable.at(1).at(1)
+fun monthlyCostPercent() = assumptionsTable.at(2).at(1)
+fun returnRows() = monthlyAssetReturnsPercent.slice(1)
+fun allocationRows() = allocations.slice(1)
+fun roundDisplay(value) = globalThis.Math.round(value * 100) / 100
+fun monthlyPortfolioPercent(row, allocation) = row.1 * allocation.1 / 100 + row.2 * allocation.2 / 100 - monthlyCostPercent()
+fun nextWealth(previous, row, allocation) = previous.1 * (1 + monthlyPortfolioPercent(row, allocation) / 100)
+fun runningPeak(previous, wealth) = if wealth > previous.2 then wealth else previous.2
+fun makeState(month, wealth, peak) = [month, wealth, peak, 100 * (wealth / startingCapital() - 1), 100 * (wealth / peak - 1)]
+fun advance(previous, row, allocation) = makeState(row.0, nextWealth(previous, row, allocation), runningPeak(previous, nextWealth(previous, row, allocation)))
+fun simulate(allocation) = returnRows().reduce((path, row) => [...path, advance(path.at(-1), row, allocation)], [["Start", startingCapital(), startingCapital(), 0, 0]])
+fun allocationPaths() = allocationRows().map(allocation => simulate(allocation))
+fun pathState(a, index) = allocationPaths().at(a).at(index)
+fun monthLabels() = ["Start", ...returnRows().map(row => row.0)]
+fun monthIndexes(n) = if n <= 0 then [0] else [...monthIndexes(n - 1), n]
+fun pathIndexes() = monthIndexes(returnRows().length)
+fun comparisonHeaders() = ["Month"].concat(allocationRows().map(a => a.0 + " (%)"))
+fun monthlyComparisonRow(row) = [row.0].concat([0, 1, 2].map(a => roundDisplay(monthlyPortfolioPercent(row, allocationRows().at(a)))))
+fun cumulativeComparisonRow(index) = [monthLabels().at(index)].concat([0, 1, 2].map(a => roundDisplay(pathState(a, index).at(3))))
+fun drawdownComparisonRow(index) = [monthLabels().at(index)].concat([0, 1, 2].map(a => roundDisplay(pathState(a, index).at(4))))
+fun worstDrawdownPercent(path) = path.reduce((worst, state) => if state.4 < worst then state.4 else worst, 0)
+fun endingValue(index) = roundDisplay(pathState(index, returnRows().length).at(1))
+fun endingReturn(index) = roundDisplay(pathState(index, returnRows().length).at(3))
+fun worstDrop(index) = roundDisplay(worstDrawdownPercent(allocationPaths().at(index)))
+fun endingHeaders() = ["Allocation", "Equity weight (%)", "Bond weight (%)", "Ending value (USD)", "Cumulative return (%)", "Worst drop from peak (%)"]
+fun endingRow(index) = [allocationRows().at(index).at(0), allocationRows().at(index).at(1), allocationRows().at(index).at(2), endingValue(index), endingReturn(index), worstDrop(index)]
+fun briefHeaders() = ["Allocation", "Ending value (USD)", "Cumulative return (%)", "Worst drop from peak (%)"]
+fun briefRow(index) = [allocationRows().at(index).at(0), endingValue(index), endingReturn(index), worstDrop(index)]
 
 val portfolioReturnsTable = [comparisonHeaders()].concat(returnRows().map(row => monthlyComparisonRow(row)))
 
@@ -74,13 +68,16 @@ val cumulativeReturnsTable = [comparisonHeaders()].concat(pathIndexes().map(inde
 
 val drawdownTable = [comparisonHeaders()].concat(pathIndexes().map(index => drawdownComparisonRow(index)))
 
-val endingFiguresTable = [["Allocation", "Equity (%)", "Bond (%)", "Ending value (USD)", "Cumulative return (%)", "Maximum drawdown (%)"]].concat([0, 1, 2].map(index => endingRow(index)))
+val endingFiguresTable = [endingHeaders()].concat([0, 1, 2].map(index => endingRow(index)))
+
+val briefFiguresTable = [briefHeaders()].concat([0, 1, 2].map(index => briefRow(index)))
 
 module Portfolio with
   val assetReturns = monthlyAssetReturnsPercent
   val assumptions = assumptionsTable
-  val allocationTargets = allocationTable
+  val allocationTargets = allocations
   val portfolioReturns = portfolioReturnsTable
   val cumulativeReturns = cumulativeReturnsTable
   val drawdowns = drawdownTable
   val endingFigures = endingFiguresTable
+  val briefFigures = briefFiguresTable

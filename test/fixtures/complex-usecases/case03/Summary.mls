@@ -1,9 +1,18 @@
 import "./shared/Portfolio.mls"
 
-val summaryNote = "# Portfolio comparison: manager brief\nSynthetic monthly total returns for three fully invested equity and bond allocations, rebalanced monthly and compounded. Drawdowns include the initial capital peak, and figures are rounded only for display. Analysis.mls has the full tables and method. This is illustrative, not a recommendation."
+val summaryNote = "# Portfolio comparison: manager brief, Jan 2025 to Jun 2026\nThree stock and bond mixes, rebalanced monthly from USD 100,000, on invented returns: illustrative only, not investment advice (full method in Analysis.mls)."
+
+fun mixes() = Portfolio.briefFigures.slice(1)
+fun highest() = mixes().reduce((best, row) => if row.1 > best.1 then row else best)
+fun deepest() = mixes().reduce((worst, row) => if row.3 < worst.3 then row else worst)
+fun usd(value) = "USD " + globalThis.Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+fun tradeOff() = if highest().0 == deepest().0 then " The highest return came with the deepest fall along the way." else ""
+
+val conclusion = "## Conclusion\n" + highest().0 + " ended highest at " + usd(highest().1) + " (" + highest().2 + "% cumulative return). " + deepest().0 + " had the worst drop from its peak: " + deepest().3 + "%." + tradeOff()
 
 val cumulativeReturns = Portfolio.cumulativeReturns
 
-val cumulativeChart = { chart: "Line", source: "cumulativeReturns", x: "Month", ys: ["Defensive", "Balanced", "Growth"] }
+val cumulativeChart = { chart: "Line", source: "cumulativeReturns", x: "Month", ys: ["Defensive (%)", "Balanced (%)", "Growth (%)"] }
 
-val endingFigures = Portfolio.endingFigures
+val briefFigures = Portfolio.briefFigures

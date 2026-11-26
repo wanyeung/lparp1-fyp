@@ -1,21 +1,47 @@
-import "./shared/Subscription.mls"
+val context = "# Retail manager: subscription price review\nAn analyst shares a drinks subscription model with an operations manager who is considering raising the monthly price from USD 60 to USD 75. This report compares both prices before a pilot. All inputs are synthetic assumptions, and every figure is per subscriber per month.\nTo try a different assumption, type over a green cell in the assumptions table, or drag the Proposed bar in the price chart. The file updates and every table and chart below is recalculated."
 
-val context = "# Retail manager: subscription price review\nAn analyst shares a subscription model with an operations manager who is considering a price change from $60 to $75. This demo compares both prices before a pilot. All inputs are synthetic assumptions, and a monthly subscription period is assumed."
+val assumptions = [
+  ["Scenario", "Price (USD per subscriber per month)", "Drink cost (USD per drink)", "Drinks redeemed (per subscriber per month)"],
+  ["Current", 60, 2.5, 20],
+  ["Proposed", 75, 2.5, 20]
+]
 
-val assumptions = Subscription.assumptions
+val currentVsProposedPrice = { chart: "Bar", source: "assumptions", x: "Scenario", ys: ["Price (USD per subscriber per month)"] }
 
-val assumptionsChart = { chart: "Bar", source: "assumptions", x: "Assumption", ys: ["Value"] }
+fun scenarios() = assumptions.slice(1)
+fun current() = scenarios().at(0)
+fun proposed() = scenarios().at(1)
 
-val formula = "# Contribution\nMonthly contribution per subscriber = subscription price - drink cost x redemptions. Both prices use the same expected redemptions and cost. Contribution is not net profit: fixed overhead, taxes, acquisition costs and payment fees are excluded, and no demand response to price is modeled."
+fun contribution(subscriptionPrice, costPerDrink, redemptions) = subscriptionPrice - costPerDrink * redemptions
+fun scenarioContribution(row) = contribution(row.1, row.2, row.3)
 
-val comparison = Subscription.comparison
+fun sensitivityMaximum() = 40
+fun sensitivityStep() = 5
+fun redemptionGrid(limit, step) =
+  if limit <= 0 then [0]
+  else if step <= 0 then [0]
+  else [...redemptionGrid(limit - step, step), limit]
 
-val comparisonChart = { chart: "Bar", source: "comparison", x: "Scenario", ys: ["Contribution"] }
+fun comparisonHeaders() = ["Scenario", "Price (USD per subscriber per month)", "Drink cost (USD per subscriber per month)", "Contribution (USD per subscriber per month)"]
+fun comparisonRow(row) = [row.0, row.1, row.2 * row.3, scenarioContribution(row)]
+fun changeHeaders() = ["Metric", "Value", "Unit"]
+fun changeRows() = [
+  ["Price change", proposed().1 - current().1, "USD per subscriber per month"],
+  ["Contribution change", scenarioContribution(proposed()) - scenarioContribution(current()), "USD per subscriber per month"]
+]
+fun sensitivityHeaders() = ["Drinks redeemed (per subscriber per month)", "Current contribution (USD per subscriber per month)", "Proposed contribution (USD per subscriber per month)"]
+fun sensitivityRow(n) = [n, contribution(current().1, current().2, n), contribution(proposed().1, proposed().2, n)]
 
-val change = Subscription.change
+val formula = "# Contribution\nContribution (USD per subscriber per month) = price - drink cost x drinks redeemed, using each scenario's own row of assumptions. Contribution is not net profit: fixed overhead, taxes, acquisition costs and payment fees are excluded, and no demand response to price is modelled."
 
-val sensitivity = Subscription.sensitivity
+val comparison = [comparisonHeaders()].concat(scenarios().map(row => comparisonRow(row)))
 
-val sensitivityChart = { chart: "Line", source: "sensitivity", x: "Redemptions", ys: ["Baseline", "Proposed"] }
+val comparisonChart = { chart: "Bar", source: "comparison", x: "Scenario", ys: ["Contribution (USD per subscriber per month)"] }
 
-val interpretation = "# Reading the sensitivity\nThe two lines are calculated at every redemption count. Negative contribution is kept: each extra redemption reduces contribution by the drink cost. Changing a price moves its line, and changing the drink cost changes both slopes."
+val change = [changeHeaders()].concat(changeRows())
+
+val sensitivity = [sensitivityHeaders()].concat(redemptionGrid(sensitivityMaximum(), sensitivityStep()).map(n => sensitivityRow(n)))
+
+val sensitivityChart = { chart: "Line", source: "sensitivity", x: "Drinks redeemed (per subscriber per month)", ys: ["Current contribution (USD per subscriber per month)", "Proposed contribution (USD per subscriber per month)"] }
+
+val interpretation = "# Reading the sensitivity\nEach line shows contribution at every redemption count from 0 to 40 drinks. Negative contribution is kept: each extra drink reduces contribution by that scenario's drink cost. Changing a price moves its line up or down, and changing a drink cost changes the slope of its line."
