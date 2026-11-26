@@ -1,0 +1,11 @@
+import "../service/Html.mls"
+
+module Export with
+
+  fun literal(v) = globalThis.JSON.stringify(v)
+
+  fun mls(name, table) =
+    "val " + name + " = [\n" +
+      table.map(row => "  [" + row.map(v => literal(v)).join(", ") + "]").join(",\n") + "\n]\n"
+
+  fun html(items, nonce, charts) = Html.generateHtml(items, nonce, charts)

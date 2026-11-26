@@ -1,0 +1,43 @@
+val price = 60
+val drinkCost = 2.5
+val expectedRedemptions = 20
+val scenarioPrice = 75
+val maxRedemptions = 40
+val redemptionStep = 5
+
+fun contribution(subscriptionPrice, costPerDrink, redemptions) = subscriptionPrice - costPerDrink * redemptions
+
+fun redemptionGrid(limit, step) =
+  if limit <= 0 then [0]
+  else if step <= 0 then [0]
+  else [...redemptionGrid(limit - step, step), limit]
+
+val assumptionTable = [
+  ["Assumption", "Value", "Unit"],
+  ["Baseline price", price, "USD/subscriber/month"],
+  ["Drink cost", drinkCost, "USD/drink"],
+  ["Expected redemptions", expectedRedemptions, "drinks/subscriber/month"],
+  ["Proposed price", scenarioPrice, "USD/subscriber/month"],
+  ["Sensitivity maximum", maxRedemptions, "drinks/subscriber/month"],
+  ["Sensitivity step", redemptionStep, "drinks/subscriber/month"]
+]
+
+val comparisonTable = [
+  ["Scenario", "Price", "Redemptions", "Drink cost", "Contribution"],
+  ["Baseline", price, expectedRedemptions, drinkCost * expectedRedemptions, contribution(price, drinkCost, expectedRedemptions)],
+  ["Proposed", scenarioPrice, expectedRedemptions, drinkCost * expectedRedemptions, contribution(scenarioPrice, drinkCost, expectedRedemptions)]
+]
+
+val sensitivityTable = [["Redemptions", "Baseline", "Proposed"]].concat(redemptionGrid(maxRedemptions, redemptionStep).map(n => [n, contribution(price, drinkCost, n), contribution(scenarioPrice, drinkCost, n)]))
+
+val changeTable = [
+  ["Metric", "Value", "Unit"],
+  ["Price change", scenarioPrice - price, "USD/subscriber/month"],
+  ["Contribution change at equal redemptions", contribution(scenarioPrice, drinkCost, expectedRedemptions) - contribution(price, drinkCost, expectedRedemptions), "USD/subscriber/month"]
+]
+
+module Subscription with
+  val assumptions = assumptionTable
+  val comparison = comparisonTable
+  val sensitivity = sensitivityTable
+  val change = changeTable

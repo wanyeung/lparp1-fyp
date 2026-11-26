@@ -1,0 +1,19 @@
+val notes = "# Student learning: grade book\nQuiz, lab and exam are weighted 20, 30 and 50, and the weights should add to 100. Each total is (quiz x quiz weight + lab x lab weight + exam x exam weight) / 100, so Ada, Ben and Cho start at 78, 78 and 91.4.\nEdit a weight or a score and every total follows. Total cells are computed, so they cannot be overwritten."
+
+val weights = [
+  ["quiz", "lab", "exam"],
+  [20, 30, 50]
+]
+
+val students = [
+  ["name", "quiz", "lab", "exam"],
+  ["Ada", 80, 90, 70],
+  ["Ben", 60, 70, 90],
+  ["Cho", 95, 88, 92]
+]
+
+val grades = [["name", "quiz", "lab", "exam", "total"]].concat(students.slice(1).map(s => [s.0, s.1, s.2, s.3, (s.1 * weights.1.0 + s.2 * weights.1.1 + s.3 * weights.1.2) / 100]))
+
+val totals = { chart: "Bar", source: "grades", x: "name", ys: ["total"] }
+
+val quizzes = { chart: "Bar", source: "students", x: "name", ys: ["quiz"] }

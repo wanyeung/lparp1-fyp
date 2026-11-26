@@ -1,0 +1,9 @@
+import "./table.mls"
+
+val _sales = table.grid
+
+val bars = { chart: "Bar", source: "_sales", x: "item", ys: ["units"] }
+
+val trend = { chart: "Line", source: "_sales", x: "item", ys: ["units", "price"] }
+
+val share = { chart: "Pie", source: "_sales", x: "item", ys: ["units"] }

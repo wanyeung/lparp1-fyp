@@ -1,0 +1,69 @@
+// Categories credit: Cellery (UIST '26), https://cseweb.ucsd.edu/~mcoblenz/assets/pdf/uist26_cellery.pdf
+
+module Primitive with
+
+  fun nested(value) =
+    if value is Array then true
+    else if value is {} then true
+    else false
+
+  fun scalarRow(row) =
+    if row is Array then row.every(cell => nested(cell) == false) else false
+
+  fun isTable(value) = value.length > 0 && value.every(row => scalarRow(row))
+
+  fun isFlat(value) = value.every(x => nested(x) == false)
+
+  fun isText(value) =
+    if value is Str then value.startsWith("#") || value.includes("\n") else false
+
+  fun imported(p) = if p.origin is Str then p.origin != "" else false
+
+  fun withOrigin(p, file) = { ...p, origin: file }
+
+  fun isChart(value) = value.chart is Str
+
+  fun node(key, path, kind, headers, rows, children) =
+    { key: key, name: key, kind: kind, path: path, headers: headers, rows: rows, children: children }
+
+  fun table(path, key, value) = node(key, path, "table", value.0, value.slice(1), [])
+
+  fun list(path, key, value) = node(key, path, "list", [""], value.map(x => [x]), [])
+
+  fun atom(path, key, value) = node(key, path, "atom", [""], [[value]], [])
+
+  fun text(path, key, value) = { ...node(key, path, "text", [], [], []), text: value }
+
+  fun chart(path, key, value) = { ...node(key, path, "chart", [], [], []), spec: value }
+
+  fun sequence(path, key, value) =
+    node(key, path, "list", [], [], value.map((x, i) => build(path.concat([i]), globalThis.String(i), x)))
+
+  fun block(path, key, value) =
+    node(key, path, "block", [], [], globalThis.Object.entries(value).map(entry => build(path.concat([entry.0]), entry.0, entry.1)))
+
+  // Turns one value into a node and decides its kind from the shape of the value. Records and lists of records recurse.
+  fun build(path, key, value) =
+    if value is Array then
+      if isTable(value) then table(path, key, value)
+      else if isFlat(value) then list(path, key, value)
+      else sequence(path, key, value)
+    else if value is {} then
+      if isChart(value) then chart(path, key, value) else block(path, key, value)
+    else if isText(value) then text(path, key, value)
+    else atom(path, key, value)
+
+  // Builds the node of a top-level `val`.
+  fun make(key, value) = build([key], key, value)
+
+  // The path of one cell: a table skips its header row, a list uses the index, an atom has none.
+  fun cellPath(leaf, row, col) =
+    if leaf.kind == "table" then leaf.path.concat([row + 1, col])
+    else if leaf.kind == "list" then leaf.path.concat([row])
+    else leaf.path
+
+  // Finds a node by key at any depth; the first hit wins.
+  fun find(primitives, key) =
+    let top = primitives.filter(p => p.key == key)
+    if top.length > 0 then [top.0]
+    else primitives.flatMap(p => find(p.children, key)).slice(0, 1)

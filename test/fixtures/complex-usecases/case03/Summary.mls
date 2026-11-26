@@ -1,0 +1,9 @@
+import "./shared/Portfolio.mls"
+
+val summaryNote = "# Portfolio comparison: manager brief\nSynthetic monthly total returns for three fully invested equity and bond allocations, rebalanced monthly and compounded. Drawdowns include the initial capital peak, and figures are rounded only for display. Analysis.mls has the full tables and method. This is illustrative, not a recommendation."
+
+val cumulativeReturns = Portfolio.cumulativeReturns
+
+val cumulativeChart = { chart: "Line", source: "cumulativeReturns", x: "Month", ys: ["Defensive", "Balanced", "Growth"] }
+
+val endingFigures = Portfolio.endingFigures

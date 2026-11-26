@@ -1,0 +1,19 @@
+val notes = "# Experimental measurements: spring length\nFive trials from one caliper, with the room temperature noted for each. Drag a bar to rewrite that trial's length. The means are computed from the trials, so there is only one place to type each reading."
+
+val trials = [
+  ["trial", "temperature", "length"],
+  [1, 21.0, 102.4],
+  [2, 21.2, 101.8],
+  [3, 21.1, 103.0],
+  [4, 20.9, 102.1],
+  [5, 21.0, 102.7]
+]
+
+fun mean(rows, col) = rows.slice(1).reduce((sum, r) => sum + r.at(col), 0) / (rows.length - 1)
+
+val summary = [
+  ["meanTemperature", "meanLength"],
+  [mean(trials, 1), mean(trials, 2)]
+]
+
+val lengths = { chart: "Bar", source: "trials", x: "trial", ys: ["length"] }

@@ -1,0 +1,91 @@
+{
+  "name": "mlstudio-vscode",
+  "displayName": "MLscript Studio",
+  "description": "Table and chart views of .mls files, beside your code",
+  "version": "0.2.0",
+  "publisher": "mlstudio",
+  "author": "Wan Yeung",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wanyeung/lparp1-fyp.git",
+    "directory": "vscodehost"
+  },
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "main": "./src/extension.cjs",
+  "activationEvents": [
+    "onLanguage:mlscript",
+    "workspaceContains:**/*.mls"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "mlscript",
+        "extensions": [
+          ".mls"
+        ],
+        "aliases": [
+          "MLscript"
+        ]
+      }
+    ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "mlstudio",
+          "title": "MLscript",
+          "icon": "icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "mlstudio": [
+        {
+          "type": "webview",
+          "id": "mlstudio.documentView",
+          "name": "Document View"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "mlstudio.openDocumentView",
+        "title": "MLscript: Open Document View",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "mlstudio.openDocumentView",
+          "group": "navigation@1",
+          "when": "resourceLangId == mlscript || resourceExtname == .mls"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "MLscript Studio",
+      "properties": {
+        "mlstudio.autoOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Document View the first time an .mls file is opened."
+        },
+        "mlstudio.followCursor": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show only the part of the document that the cursor is in (a variable, a function, or the whole file)."
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The Document View builds and runs your .mls files, so it only does that in a trusted folder."
+    }
+  }
+}

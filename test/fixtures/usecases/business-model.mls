@@ -1,0 +1,23 @@
+val notes = "# Business model: cafe unit economics\nLatte, tea and pastry share one fixed cost. Contribution is (price - variable cost) x units, so it is computed and cannot be dragged. Profit subtracts the fixed cost once.\nSetting pastry units to 0 drops that line to 0 and profit to 880, so the pastry line is not needed to cover the fixed cost."
+
+val fixedCost = 4000
+
+val products = [
+  ["product", "price", "units", "variableCost"],
+  ["Latte", 38, 120, 12],
+  ["Tea", 28, 80, 6],
+  ["Pastry", 22, 60, 9]
+]
+
+fun total(rows, f) = rows.slice(1).reduce((sum, r) => sum + f(r), 0)
+
+val contributions = [["product", "units", "contribution"]].concat(products.slice(1).map(p => [p.0, p.2, (p.1 - p.3) * p.2]))
+
+val summary = [
+  ["revenue", "variableCost", "fixedCost", "profit"],
+  [total(products, p => p.1 * p.2), total(products, p => p.3 * p.2), fixedCost, total(products, p => p.1 * p.2) - total(products, p => p.3 * p.2) - fixedCost]
+]
+
+val units = { chart: "Bar", source: "products", x: "product", ys: ["units"] }
+
+val contribution = { chart: "Bar", source: "contributions", x: "product", ys: ["contribution"] }

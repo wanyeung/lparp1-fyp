@@ -1,0 +1,20 @@
+val inventory = {
+  title: "Warehouse",
+  stock: [
+    ["item", "units"],
+    ["Tea", 30],
+    ["Coffee", 45]
+  ],
+  tags: ["fresh", "bulk"],
+  owner: { name: "Ann", floor: 2 }
+}
+
+val teams = [
+  { name: "Engineering", size: 12 },
+  { name: "Design", size: 4 }
+]
+
+val total = 75
+
+fun report(x) =
+  inventory.stock.length + x

@@ -1,0 +1,19 @@
+val notes = "# Algorithm benchmark: search timings\nLinear search, binary search and a hash table, each timed at 1 000 and 10 000 keys. Each speedup is the linear time at the same input size divided by the candidate's time, so linear search is exactly 1 at both sizes.\nDrag a bar in the timings chart to record a new run. The speedup cells are formulas and cannot be dragged."
+
+val runs = [
+  ["label", "algorithm", "inputSize", "microseconds"],
+  ["Linear 1k", "Linear search", 1000, 12400],
+  ["Binary 1k", "Binary search", 1000, 800],
+  ["Hash 1k", "Hash lookup", 1000, 300],
+  ["Linear 10k", "Linear search", 10000, 128000],
+  ["Binary 10k", "Binary search", 10000, 1100],
+  ["Hash 10k", "Hash lookup", 10000, 400]
+]
+
+fun baseline(i) = if i < 3 then runs.1.3 else runs.4.3
+
+val comparison = [["label", "inputSize", "microseconds", "speedup"]].concat(runs.slice(1).map((r, i) => [r.0, r.2, r.3, baseline(i) / r.3]))
+
+val times = { chart: "Bar", source: "runs", x: "label", ys: ["microseconds"] }
+
+val speedups = { chart: "Bar", source: "comparison", x: "label", ys: ["speedup"] }

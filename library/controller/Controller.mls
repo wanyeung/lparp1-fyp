@@ -1,0 +1,30 @@
+import "../model/Primitive.mls"
+import "../model/Document.mls"
+import "../service/Source.mls"
+import "../service/SourceEdit.mls"
+import "../service/Scope.mls"
+
+module Controller with
+
+  // Turns the exports of a compiled file into nodes, marks the imported ones and orders them like the file.
+  fun primitives(payload) =
+    globalThis.Object.entries(payload.exports)
+      .filter(entry => entry.0.startsWith("_$_modulePrivate_$_"))
+      .filter(entry => (entry.1 is Function) == false)
+      .map(entry => Primitive.make(entry.0.slice(19), entry.1))
+      .map(p => Primitive.withOrigin(p, Source.origin(payload.source, p.key)))
+      .sort((a, b) => Source.position(payload.source, a.key) - Source.position(payload.source, b.key))
+
+  fun document(payload) = Document.ofFile(payload.file, primitives(payload))
+
+  fun tree(document, primitives) = Document.tree(document, primitives)
+
+  // Writes an edited cell, header or chart drag back into the source text.
+  fun edit(payload) =
+    if payload.header == true then SourceEdit.header(payload.source, payload.path, payload.kind, payload.col, payload.text)
+    else SourceEdit.at(payload.source, Primitive.cellPath(payload, payload.row, payload.col), payload.text)
+
+  // Reorders a top-level value in the source text.
+  fun move(payload) = SourceEdit.move(payload.source, payload.name, payload.dir)
+
+  fun scope(tree, source, offset) = Scope.view(tree, source, offset)

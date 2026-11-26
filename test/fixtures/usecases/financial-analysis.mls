@@ -1,0 +1,44 @@
+val notes = "# Financial analysis: twelve-month cashflow\nThe books open at 2000, added once on the January row. Net is income minus expenses, and the balance carries forward from January to December. Choose Line or Area to read the year as a time series.\nThe same spending is also stored by category. Both totals should read 46600, and the last table shows if they ever drift apart."
+
+val opening = 2000
+
+val months = [
+  ["month", "income", "expenses"],
+  ["Jan", 4200, 3100],
+  ["Feb", 4200, 2800],
+  ["Mar", 4500, 3600],
+  ["Apr", 4800, 3400],
+  ["May", 5100, 3900],
+  ["Jun", 5000, 4200],
+  ["Jul", 4600, 4100],
+  ["Aug", 4700, 3600],
+  ["Sep", 5300, 4000],
+  ["Oct", 5600, 4300],
+  ["Nov", 5400, 4500],
+  ["Dec", 6200, 5100]
+]
+
+val expenses = [
+  ["category", "amount"],
+  ["Rent", 24000],
+  ["Food", 12600],
+  ["Transport", 6000],
+  ["Utilities", 4000]
+]
+
+fun total(rows, f) = rows.slice(1).reduce((sum, r) => sum + f(r), 0)
+
+val cashflow = [["month", "income", "expenses", "net", "balance"]].concat(months.slice(1).map((m, i) => [m.0, m.1, m.2, m.1 - m.2, opening + months.slice(1, i + 2).reduce((sum, r) => sum + r.1 - r.2, 0)]))
+
+val reconciled = [
+  ["categoryTotal", "monthTotal"],
+  [total(expenses, e => e.1), total(months, m => m.2)]
+]
+
+val net = { chart: "Bar", source: "cashflow", x: "month", ys: ["net"] }
+
+val balance = { chart: "Line", source: "cashflow", x: "month", ys: ["balance"] }
+
+val income = { chart: "Bar", source: "months", x: "month", ys: ["income"] }
+
+val categories = { chart: "Bar", source: "expenses", x: "category", ys: ["amount"] }

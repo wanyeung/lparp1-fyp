@@ -1,0 +1,23 @@
+import "./shared/Portfolio.mls"
+
+val disclosure = "# Portfolio comparison: analyst working report\nThese monthly returns are invented educational inputs, not market data, forecasts or investment advice. Two documents reuse one shared input series and calculation module, so editing a value means opening shared/Portfolio.mls."
+
+val method = "## Method and units\nWeights are fixed targets restored at the start of every month. Returns are monthly total-return percentages with reinvestment. Wealth compounds without intermediate rounding. Cumulative return (%) = 100 x (wealth / initial capital - 1). Drawdown (%) = 100 x (wealth / running peak - 1), and month 0 is included in the peak. No taxes, leverage, deposits, withdrawals or trading frictions are modeled."
+
+val assumptions = Portfolio.assumptions
+
+val allocations = Portfolio.allocationTargets
+
+val assetReturns = Portfolio.assetReturns
+
+val portfolioReturns = Portfolio.portfolioReturns
+
+val cumulativeReturns = Portfolio.cumulativeReturns
+
+val cumulativeChart = { chart: "Line", source: "cumulativeReturns", x: "Month", ys: ["Defensive", "Balanced", "Growth"] }
+
+val drawdowns = Portfolio.drawdowns
+
+val drawdownChart = { chart: "Line", source: "drawdowns", x: "Month", ys: ["Defensive", "Balanced", "Growth"] }
+
+val endingFigures = Portfolio.endingFigures

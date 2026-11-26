@@ -1,0 +1,72 @@
+module Html with
+
+  fun esc(value) =
+    globalThis.String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;")
+
+  fun imported(g) = if g.origin is Str then g.origin != "" else false
+
+  // The read-only line under an imported table, with a button to open its file.
+  fun note(g) =
+    if imported(g) then "<p class=\"muted\">Read only. Defined in <button data-open=\"" + esc(g.origin) + "\">" + esc(g.origin) + "</button></p>" else ""
+
+  // One table cell: editable unless the table is imported.
+  fun cell(tag, g, r, c, v, header) =
+    if imported(g) then "<" + tag + ">" + esc(v) + "</" + tag + ">"
+    else "<" + tag + " contenteditable=\"true\" data-path=\"" + esc(globalThis.JSON.stringify(g.path)) + "\" data-kind=\"" + g.kind +
+      "\" data-row=\"" + r + "\" data-col=\"" + c + "\" data-header=\"" + header + "\" data-old=\"" + esc(v) + "\">" + esc(v) + "</" + tag + ">"
+
+  fun table(g) =
+    "<section><h2>" + esc(g.name) + " <small>" + g.kind + "</small></h2>" + note(g) + "<table><thead><tr>" +
+      g.headers.map((h, c) => cell("th", g, 0, c, h, true)).join("") + "</tr></thead><tbody>" +
+      g.rows.map((row, r) => "<tr>" + row.map((v, c) => cell("td", g, r, c, v, false)).join("") + "</tr>").join("") +
+      "</tbody></table></section>"
+
+  fun section(g) =
+    "<section class=\"block\"><h2>" + esc(g.name) + " <small>" + g.kind + "</small></h2>" +
+      g.children.map(child => view(child)).join("") + "</section>"
+
+  fun markdownLine(line) =
+    if line.startsWith("## ") then "<h3>" + esc(line.slice(3)) + "</h3>"
+    else if line.startsWith("# ") then "<h2>" + esc(line.slice(2)) + "</h2>"
+    else if line.trim() == "" then ""
+    else "<p>" + esc(line) + "</p>"
+
+  fun markdown(text) = "<section>" + text.split("\n").map(line => markdownLine(line)).join("") + "</section>"
+
+  fun chartView(p) =
+    "<section><h2>" + esc(p.name) + " <small>chart</small></h2><div class=\"chart\" data-chart=\"" + esc(globalThis.JSON.stringify(p)) + "\"></div></section>"
+
+  // The up and down buttons of a top-level node.
+  fun mover(p) =
+    if p.path is Array then
+      if p.path.length == 1 then "<div class=\"move\"><button data-move=\"" + esc(p.path.0) + "\" data-dir=\"-1\" title=\"Move up\">&#9650;</button><button data-move=\"" + esc(p.path.0) + "\" data-dir=\"1\" title=\"Move down\">&#9660;</button></div>" else ""
+    else ""
+
+  // Draws one node by its kind: grid, section, chart, Markdown or error.
+  fun view(p) =
+    if p.kind == "text" then markdown(p.text)
+    else if p.kind == "missing" then "<p class=\"error\">Not found: " + esc(p.key) + "</p>"
+    else if p.kind == "chart" then chartView(p)
+    else if p.kind == "block" || p.children.length > 0 then section(p)
+    else table(p)
+
+  val style = "body{font:14px var(--vscode-font-family,sans-serif);color:var(--vscode-editor-foreground,#222);background:var(--vscode-editor-background,#fff);padding:12px}h2{font-size:15px}small{opacity:.6;font-weight:normal}table{border-collapse:collapse;margin-bottom:20px}th,td{border:1px solid var(--vscode-panel-border,#8884);padding:4px 10px;text-align:left}th{background:var(--vscode-editorWidget-background,#8881)}td[contenteditable]{background:#2e7d3222}th:empty::before{content:'+';opacity:.4}td:focus{outline:2px solid var(--vscode-focusBorder,#07f)}.block{border-left:3px solid #8886;padding-left:12px}.chart{margin-bottom:20px}.chart h1{font-size:13px;margin:12px 0 2px}.muted{color:var(--vscode-descriptionForeground,#666);font-size:.8em}.mono{font-family:var(--vscode-editor-font-family,monospace)}.type-row{display:flex;flex-wrap:wrap;gap:5px}.type-row button{border:1px solid var(--vscode-editorWidget-border,#ccc);background:var(--vscode-input-background,#fff);color:inherit;border-radius:3px;padding:3px 8px;cursor:pointer;font-size:.78em}.type-row button.on{background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border-color:transparent}.bar-row{display:grid;grid-template-columns:minmax(80px,150px) 1fr minmax(52px,auto);align-items:center;gap:9px;margin:5px 0}.bar-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.82em;color:var(--vscode-descriptionForeground,#555)}.track{position:relative;height:20px;background:color-mix(in srgb,var(--vscode-descriptionForeground,#888) 14%,transparent);border-radius:4px;overflow:hidden}.track.edit{cursor:ew-resize}.fill{position:absolute;top:0;bottom:0;left:0;background:var(--vscode-charts-blue,#3794ff);border-radius:3px}.bar-value{text-align:right;font:.82em var(--vscode-editor-font-family,monospace)}.columns{display:flex;align-items:stretch;gap:9px;height:190px;padding:8px 2px 0;border-bottom:1px solid var(--vscode-editorWidget-border,#ccc)}.column{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}.col-value,.col-label{font-size:.76em;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.col-track{position:relative;flex:1;width:100%;max-width:46px;background:color-mix(in srgb,var(--vscode-descriptionForeground,#888) 14%,transparent);border-radius:4px;overflow:hidden}.col-track.edit{cursor:ns-resize}.col-fill{position:absolute;left:0;right:0;bottom:0;background:var(--vscode-charts-blue,#3794ff);border-radius:3px}.series{width:100%;max-height:240px;display:block}.series.square{max-width:320px}.series .grid{fill:none;stroke:var(--vscode-editorWidget-border,#ddd)}.series .line{fill:none;stroke:var(--vscode-charts-blue,#3794ff);stroke-width:2.2}.series .area{fill:var(--vscode-charts-blue,#3794ff);opacity:.22}.series .stem{stroke:var(--vscode-charts-blue,#3794ff);stroke-width:1.5}.series .dot{fill:var(--vscode-charts-blue,#3794ff);stroke:var(--vscode-editor-background,#fff);stroke-width:1.5}.series .dot.edit{cursor:ns-resize}.ticks{display:flex;justify-content:space-between;font-size:.76em;color:var(--vscode-descriptionForeground,#555)}.legend{display:flex;flex-wrap:wrap;gap:7px 16px;font-size:.8em;color:var(--vscode-descriptionForeground,#555)}.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}.error,.missing{color:var(--vscode-errorForeground,#c00);white-space:pre-wrap}.move{display:flex;justify-content:flex-end;gap:4px}.move button{border:1px solid var(--vscode-editorWidget-border,#ccc);background:transparent;color:inherit;border-radius:3px;cursor:pointer;font-size:.7em;padding:1px 6px}.muted button{background:none;border:0;color:var(--vscode-textLink-foreground,#06c);cursor:pointer;font:inherit;text-decoration:underline;padding:0}"
+
+  val script = "const api = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: m => window.parent.postMessage(m, '*') };document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-path]')) { e.preventDefault(); e.target.blur(); } });document.addEventListener('focusout', e => { const t = e.target; if (t.matches && t.matches('[data-path]') && t.textContent !== t.dataset.old) api.postMessage({ type: 'edit', path: JSON.parse(t.dataset.path), kind: t.dataset.kind, header: t.dataset.header === 'true', row: Number(t.dataset.row), col: Number(t.dataset.col), text: t.textContent }); });document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-move]'); if (b) api.postMessage({ type: 'move', name: b.dataset.move, dir: Number(b.dataset.dir) }); const o = e.target.closest && e.target.closest('[data-open]'); if (o) api.postMessage({ type: 'open', file: o.dataset.open }); });"
+
+  // Wraps a body with the style, the page script and the chart code into one HTML page.
+  fun page(body, nonce, charts) =
+    "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">" +
+      "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'nonce-" + nonce + "'; script-src 'nonce-" + nonce + "';\">" +
+      "<title>MLscript Document View</title><style nonce=\"" + nonce + "\">" + style + "</style></head><body>" + body +
+      "<script nonce=\"" + nonce + "\">" + script + "</script><script type=\"module\" nonce=\"" + nonce + "\">" + charts + "</script></body></html>"
+
+  // The page for a document tree: each top-level node with its move buttons.
+  fun generateHtml(tree, nonce, charts) = page(tree.children.map(p => mover(p) + view(p)).join(""), nonce, charts)
+
+  // The page shown when the file does not compile or run.
+  fun failure(message, nonce) = page("<pre class=\"error\">" + esc(message) + "</pre>", nonce, "")
