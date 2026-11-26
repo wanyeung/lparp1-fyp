@@ -12,10 +12,11 @@ const until = async (ok) => {
   assert.ok(ok())
 }
 
-const setup = async (trusted = true) => {
+const setup = async (trusted = true, fixture = 'table.mls') => {
   const dir = await mkdtemp(path.join(root, 'build', 'vsx-'))
   const file = path.join(dir, 'demo.mls')
-  await copyFile(path.join(root, 'test', 'fixtures', 'demo.mls'), file)
+  await copyFile(path.join(root, 'test', 'fixtures', fixture), file)
+  await copyFile(path.join(root, 'test', 'fixtures', 'table.mls'), path.join(dir, 'table.mls'))
   const text = () => readFileSync(file, 'utf8')
   const document = { fileName: file, uri: file, getText: text, positionAt: (n) => n, offsetAt: (n) => n, save: async () => {} }
   const editor = { document, selection: { active: 0 } }
@@ -34,6 +35,7 @@ const setup = async (trusted = true) => {
       getConfiguration: () => ({ get: (_, fallback) => fallback }),
       onDidSaveTextDocument: (fn) => { state.handlers.save = fn; return {} },
       applyEdit: async () => true,
+      openTextDocument: async (target) => { state.opened = target; return {} },
     },
     window: {
       activeTextEditor: editor,
@@ -48,8 +50,8 @@ const setup = async (trusted = true) => {
   const load = Module._load
   Module._load = (request, ...rest) => request === 'vscode' ? fake : load(request, ...rest)
   const require = createRequire(import.meta.url)
-  delete require.cache[require.resolve('../vscodehost/extension.cjs')]
-  const extension = require('../vscodehost/extension.cjs')
+  for (const key of Object.keys(require.cache)) if (key.includes(path.join('vscodehost', 'src'))) delete require.cache[key]
+  const extension = require('../vscodehost/src/extension.cjs')
   Module._load = load
   extension.activate({ subscriptions: [] })
   return state
@@ -95,10 +97,25 @@ test('the panel follows the cursor: a variable, a function, or the whole file', 
 test('an edit made in the panel is written back to the file', async () => {
   const s = await setup()
   await until(() => s.view.webview.html.includes('Coffee'))
-  await s.send({ type: 'edit', name: 'sales', kind: 'table', row: 0, col: 1, text: '99' })
+  await s.send({ type: 'edit', path: ['sales'], kind: 'table', row: 0, col: 1, text: '99' })
   assert.equal(s.edits.length, 1)
   assert.equal(s.edits[0].text, '99')
   assert.equal((await readFile(s.file, 'utf8')).slice(s.edits[0].range.start, s.edits[0].range.end), '30')
+})
+
+test('nested structures: the panel keeps the parent section, follows a field, and writes a nested edit back', async () => {
+  const s = await setup(true, 'nested.mls')
+  await until(() => s.view.webview.html.includes('Coffee') && s.view.webview.html.includes('Ann') && !s.view.webview.html.includes('Engineering'))
+  s.editor.selection = { active: s.text().indexOf('floor: 2') }
+  s.handlers.selection({ textEditor: s.editor })
+  await until(() => s.view.webview.html.includes('floor') && s.view.webview.html.includes('owner') && s.view.webview.html.includes('inventory') && !s.view.webview.html.includes('Coffee'))
+  await s.send({ type: 'edit', path: ['inventory', 'owner', 'floor'], kind: 'atom', row: 0, col: 0, text: '3' })
+  assert.equal(s.edits.length, 1)
+  assert.equal(s.edits[0].text, '3')
+  assert.equal((await readFile(s.file, 'utf8')).slice(s.edits[0].range.start, s.edits[0].range.end), '2')
+  s.editor.selection = { active: s.text().indexOf('size: 4') }
+  s.handlers.selection({ textEditor: s.editor })
+  await until(() => s.view.webview.html.includes('size') && s.view.webview.html.includes('teams') && !s.view.webview.html.includes('floor'))
 })
 
 test('the title bar button reveals the panel on demand', async () => {
@@ -112,4 +129,15 @@ test('in a folder that is not trusted the panel asks for trust and builds nothin
   const s = await setup(false)
   await until(() => s.view.webview.html.includes('not trusted'))
   assert.ok(!s.view.webview.html.includes('Coffee'))
+})
+
+test('charts are drawn by Marks.js, an imported table is read only, and its source opens on request', async () => {
+  const s = await setup(true, 'chart.mls')
+  await until(() => s.view.webview.html.includes('data-chart'))
+  const html = s.view.webview.html
+  assert.ok(html.includes('<script type="module"'))
+  assert.ok(html.includes('function renderChart'))
+  assert.ok(!html.includes('<table'))
+  await s.send({ type: 'open', file: './table.mls' })
+  assert.ok(s.opened.endsWith('table.mls'))
 })

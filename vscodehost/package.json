@@ -15,7 +15,7 @@
   "engines": {
     "vscode": "^1.104.0"
   },
-  "main": "./extension.cjs",
+  "main": "./src/extension.cjs",
   "activationEvents": [
     "onLanguage:mlscript",
     "workspaceContains:**/*.mls"
