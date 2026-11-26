@@ -25,7 +25,7 @@ test('the last val moves up without losing its text, and the first cannot move u
 })
 
 test('every top-level section has up and down buttons', () => {
-  const tree = { kind: 'document', name: 'd', title: 'd', path: [], children: [{ kind: 'atom', name: 'a', title: 'a', path: ['a'], headers: [''], rows: [[1]], children: [] }] }
+  const tree = { kind: 'document', key: 'd', name: 'd', path: [], children: [{ kind: 'atom', key: 'a', name: 'a', path: ['a'], headers: [''], rows: [[1]], children: [] }] }
   const html = Html.generateHtml(tree, 'n', '')
   assert.ok(html.includes('data-move="a" data-dir="-1"'))
   assert.ok(html.includes('data-move="a" data-dir="1"'))

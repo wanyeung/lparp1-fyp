@@ -2,7 +2,7 @@
   "name": "mlstudio-vscode",
   "displayName": "MLscript Studio",
   "description": "Table and chart views of .mls files, beside your code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "mlstudio",
   "author": "Wan Yeung",
   "repository": {

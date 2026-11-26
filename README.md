@@ -4,6 +4,8 @@ COMP4981 Final Year Project, HKUST. Built on [MLscript](https://github.com/hkust
 
 Project notes: [COMP4981 FYP on Notion](https://app.notion.com/p/wanyeung/COMP4981-FYP-39b5d246eb7780a18015fe4e3b402a7a?source=copy_link)
 
+Demo video: https://youtu.be/dAxtzRr72uA
+
 ## MLscript Studio
 
 **The grid is a live view of your code.**
@@ -12,7 +14,7 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 ### ⌨️ CodeView
 
-*Write it once, in code.*
+_Write it once, in code._
 
 - 🎯 **Code is the single source of truth.** Your data, formulas and charts all live in ordinary `.mls` source. Nothing sits in a hidden cell or a binary file. What you read is what runs, and every grid, chart and document is generated from it.
 - 🧠 **Write data in whatever shape you need.** Inspired by Cellery (UIST ‘26). Write a list, a table, a nested record or a single value as a plain MLscript literal, without designing a spreadsheet first. DocumentView works out the shape and draws the right grid, including multi-level headers for nested data.
@@ -21,7 +23,7 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 ### 📖 DocumentView
 
-*See your code as a document: grids, charts and prose, all rendered from source.*
+_See your code as a document: grids, charts and prose, all rendered from source._
 
 - 🔄 **Always in sync.** Change a number in the code and every table, chart and paragraph that uses it updates. No more copying figures into Word, or wondering whether the slide matches the data.
 - 🗂️ **One codebase, many documents.** Use the same source for whatever each reader needs:
@@ -38,7 +40,7 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 ### 🤝 Collaboration
 
-*Built by developers, readable by everyone.*
+_Built by developers, readable by everyone._
 
 - 🌐 **Share with MLscript Studio Online.** Send a link, and colleagues open your documents in the browser as grids, charts and reports. They don’t need VS Code or any code knowledge.
 - 🔀 **Git-native.** Your work is plain source code, so every change gets reviewed, versioned and diffed like any other pull request. Nobody has to ask which copy is final.
@@ -53,11 +55,6 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 - Cell formulas: typing `=` expressions into a grid cell, and Alt+click cell references. Computation stays in code.
 
-## Features
-
-1. Version 0.0.0, minimum loop: the core is written in MLscript and compiled to JavaScript. It decides whether a value is a single value, a list or a table (now `Primitive`).
-2. Version 0.1.0, clean skeleton: the table-to-code loop, demonstrated end to end with minimal manual effort and without AI. Save an `.mls` file, it compiles and runs in its own process, each top-level `val` appears as a grid, and editing a cell patches that literal in the source and runs again. Tables are arrays of rows with a header row. A CSV opens in the browser host and exports as `.mls` or `.html`. Charts (bar, column, pie, donut, radar, line, area, step, scatter, lollipop) are drawn with plain SVG; TODO: switch to D3. Excel import comes next.
-
 ## Installation Instructions
 
 1. Install Node.js 22 (the version this was tested on).
@@ -68,8 +65,6 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 - VS Code: run `npm run vscode` (needs the `code` command on your PATH). It opens `build/demo`, a copy of `test/fixtures`, in an Extension Development Host. Open an `.mls` file and the Document View appears in the Secondary Side Bar, following your cursor. Choose Trust if VS Code asks, because the extension runs your `.mls` code. Needs VS Code 1.104 or newer.
 - Browser: run `npm run browser` and open the address it prints (http://localhost:8080/ by default). Open an `.mls` or import a CSV, read the document, change the data in View source, and download the `.mls` or `.html`. The use cases in `test/fixtures/usecases/` are preloaded.
-
-Demo video: https://youtu.be/dAxtzRr72uA
 
 ## Layout
 
@@ -82,6 +77,22 @@ Demo video: https://youtu.be/dAxtzRr72uA
 - `vscodehost/`: the VS Code extension, a thin host over `library/`.
 - `browserhost/`: the website, a thin host over `library/` that compiles in the page.
 - `test/`: the tests, and `fixtures/` with the sample `.mls` files.
+
+## Histories
+
+1. Version 0.0.0, minimum loop: the core is written in MLscript and compiled to JavaScript, and tells a single value, a list and a table apart (now `Primitive`).
+2. Version 0.1.0, clean MVC skeleton: split into model, controller and service layers, with a VS Code extension and a browser host that imports a CSV and exports `.mls` or `.html`.
+   - Init: save the file, it compiles and runs, then `Controller` calls `Primitive.make` to decide the kind of every `val` and `Document` decides what to show, as an ordered array of items.
+   - Render: `Html.generateHtml` turns the items into a page.
+   - Edit: a cell is found in the text of the file with `Source.locate` and rewritten with `SourceEdit.at`, then the file is written back and rendered again.
+3. Version 0.2.0, the document is a tree instead of an ordered array: a `.mls` file is a document by itself, with no function to call and no program entrance, so any `.mls` file can be opened. Excel import comes next.
+   - Init: `Document.ofFile` decides what to show and `Document.tree` forms the tree. Render: `Document.focus` takes the part of the tree under the cursor before `Html.generateHtml`.
+   - Every node remembers its `path`, for example `["variableNameA", "listNameB", 0, 0]`. `Source.locate` follows that path through the text of the file and `SourceEdit` rewrites the one value it finds.
+   - A `val` that is a record (`val x = { ... }`) is a block, a group of nodes, with no extra code. A block can hold tables, lists, values and more blocks.
+   - A value imported from another file is read only and links to its source. A name that starts with `_`, such as `_dataA`, is not shown but charts can still read it. The top-level values can be reordered.
+   - Chart editing is mostly unchanged; the duplicated chart code is removed and everything goes through `Marks.js` (mostly Owen's, with parts of Peter's version): `Marks.js` → `Controller.edit` → `Source.locate` → `SourceEdit.at` → write back to the file → render again.
+   - Both hosts follow the same layout. The VS Code host is split into commands and services. The browser host now compiles in the page, has a home screen of saved documents with the use cases preloaded, and shows documents read only.
+   - See `library/model/Doc.md` for how the tree works.
 
 ## Credits & Contact
 

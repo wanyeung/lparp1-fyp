@@ -26,13 +26,13 @@ test('every fixture builds, shows no missing node and has no NaN', async () => {
     const result = await run(file)
     assert.ok(result.ok, `${path.relative(dir, file)}: ${result.error}`)
     for (const node of flat(result.tree)) {
-      assert.notEqual(node.kind, 'missing', `${path.relative(dir, file)}: ${node.name}`)
-      assert.ok(!JSON.stringify(node.rows ?? []).includes('null'), `${path.relative(dir, file)}: ${node.name} has NaN or null`)
+      assert.notEqual(node.kind, 'missing', `${path.relative(dir, file)}: ${node.key}`)
+      assert.ok(!JSON.stringify(node.rows ?? []).includes('null'), `${path.relative(dir, file)}: ${node.key} has NaN or null`)
     }
   }
 })
 
-const node = async (file, name) => flat((await run(path.join(dir, file))).tree).find((n) => n.name === name)
+const node = async (file, name) => flat((await run(path.join(dir, file))).tree).find((n) => n.key === name)
 
 test('the use cases compute the numbers their text promises', async () => {
   assert.deepEqual((await node('usecases/student-learning.mls', 'grades')).rows.map((r) => r[4]), [78, 78, 91.4])

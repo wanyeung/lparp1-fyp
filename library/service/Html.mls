@@ -9,22 +9,24 @@ module Html with
 
   fun imported(g) = if g.origin is Str then g.origin != "" else false
 
+  // The read-only line under an imported table, with a button to open its file.
   fun note(g) =
     if imported(g) then "<p class=\"muted\">Read only. Defined in <button data-open=\"" + esc(g.origin) + "\">" + esc(g.origin) + "</button></p>" else ""
 
+  // One table cell: editable unless the table is imported.
   fun cell(tag, g, r, c, v, header) =
     if imported(g) then "<" + tag + ">" + esc(v) + "</" + tag + ">"
     else "<" + tag + " contenteditable=\"true\" data-path=\"" + esc(globalThis.JSON.stringify(g.path)) + "\" data-kind=\"" + g.kind +
       "\" data-row=\"" + r + "\" data-col=\"" + c + "\" data-header=\"" + header + "\" data-old=\"" + esc(v) + "\">" + esc(v) + "</" + tag + ">"
 
   fun table(g) =
-    "<section><h2>" + esc(g.title) + " <small>" + g.kind + "</small></h2>" + note(g) + "<table><thead><tr>" +
+    "<section><h2>" + esc(g.name) + " <small>" + g.kind + "</small></h2>" + note(g) + "<table><thead><tr>" +
       g.headers.map((h, c) => cell("th", g, 0, c, h, true)).join("") + "</tr></thead><tbody>" +
       g.rows.map((row, r) => "<tr>" + row.map((v, c) => cell("td", g, r, c, v, false)).join("") + "</tr>").join("") +
       "</tbody></table></section>"
 
   fun section(g) =
-    "<section class=\"block\"><h2>" + esc(g.title) + " <small>" + g.kind + "</small></h2>" +
+    "<section class=\"block\"><h2>" + esc(g.name) + " <small>" + g.kind + "</small></h2>" +
       g.children.map(child => view(child)).join("") + "</section>"
 
   fun markdownLine(line) =
@@ -36,16 +38,18 @@ module Html with
   fun markdown(text) = "<section>" + text.split("\n").map(line => markdownLine(line)).join("") + "</section>"
 
   fun chartView(p) =
-    "<section><h2>" + esc(p.title) + " <small>chart</small></h2><div class=\"chart\" data-chart=\"" + esc(globalThis.JSON.stringify(p)) + "\"></div></section>"
+    "<section><h2>" + esc(p.name) + " <small>chart</small></h2><div class=\"chart\" data-chart=\"" + esc(globalThis.JSON.stringify(p)) + "\"></div></section>"
 
+  // The up and down buttons of a top-level node.
   fun mover(p) =
     if p.path is Array then
       if p.path.length == 1 then "<div class=\"move\"><button data-move=\"" + esc(p.path.0) + "\" data-dir=\"-1\" title=\"Move up\">&#9650;</button><button data-move=\"" + esc(p.path.0) + "\" data-dir=\"1\" title=\"Move down\">&#9660;</button></div>" else ""
     else ""
 
+  // Draws one node by its kind: grid, section, chart, Markdown or error.
   fun view(p) =
     if p.kind == "text" then markdown(p.text)
-    else if p.kind == "missing" then "<p class=\"error\">Not found: " + esc(p.name) + "</p>"
+    else if p.kind == "missing" then "<p class=\"error\">Not found: " + esc(p.key) + "</p>"
     else if p.kind == "chart" then chartView(p)
     else if p.kind == "block" || p.children.length > 0 then section(p)
     else table(p)
@@ -54,12 +58,15 @@ module Html with
 
   val script = "const api = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: m => window.parent.postMessage(m, '*') };document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-path]')) { e.preventDefault(); e.target.blur(); } });document.addEventListener('focusout', e => { const t = e.target; if (t.matches && t.matches('[data-path]') && t.textContent !== t.dataset.old) api.postMessage({ type: 'edit', path: JSON.parse(t.dataset.path), kind: t.dataset.kind, header: t.dataset.header === 'true', row: Number(t.dataset.row), col: Number(t.dataset.col), text: t.textContent }); });document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-move]'); if (b) api.postMessage({ type: 'move', name: b.dataset.move, dir: Number(b.dataset.dir) }); const o = e.target.closest && e.target.closest('[data-open]'); if (o) api.postMessage({ type: 'open', file: o.dataset.open }); });"
 
+  // Wraps a body with the style, the page script and the chart code into one HTML page.
   fun page(body, nonce, charts) =
     "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">" +
       "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'nonce-" + nonce + "'; script-src 'nonce-" + nonce + "';\">" +
       "<title>MLscript Document View</title><style nonce=\"" + nonce + "\">" + style + "</style></head><body>" + body +
       "<script nonce=\"" + nonce + "\">" + script + "</script><script type=\"module\" nonce=\"" + nonce + "\">" + charts + "</script></body></html>"
 
+  // The page for a document tree: each top-level node with its move buttons.
   fun generateHtml(tree, nonce, charts) = page(tree.children.map(p => mover(p) + view(p)).join(""), nonce, charts)
 
+  // The page shown when the file does not compile or run.
   fun failure(message, nonce) = page("<pre class=\"error\">" + esc(message) + "</pre>", nonce, "")

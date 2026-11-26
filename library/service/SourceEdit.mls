@@ -2,6 +2,7 @@ import "./Source.mls"
 
 module SourceEdit with
 
+  // Checks the typed text against the type of the old literal and returns the text to write.
   fun literal(old, text) =
     let t = text.trim()
     if old.startsWith("\"") then { ok: true, text: globalThis.JSON.stringify(text) }
@@ -10,6 +11,7 @@ module SourceEdit with
     else if t != "" && globalThis.Number.isFinite(globalThis.Number(t)) then { ok: true, text: t }
     else { ok: false, error: "Enter a number for this cell." }
 
+  // Replaces the literal at a path with the typed text, or says why it cannot.
   fun at(source, path, text) =
     let span = Source.locate(source, path)
     if span is null then { ok: false, error: "That cell is not a plain literal in the source." }
@@ -23,6 +25,7 @@ module SourceEdit with
 
   fun span(b, to) = { name: b.name, isVal: b.isVal, from: b.from, to: to }
 
+  // The top-level `val` and `fun` declarations, in file order, with where each starts.
   fun blocks(source) =
     let lines = source.split("\n")
     let found = []
@@ -36,11 +39,13 @@ module SourceEdit with
       set i = i + 1
     found.map((b, k) => span(b, if k + 1 < found.length then found.at(k + 1).from else source.length))
 
+  // The next `val` in the given direction, skipping functions.
   fun neighbour(found, i, dir) =
     let k = i + dir
     while k >= 0 && k < found.length && found.at(k).isVal == false do set k = k + dir
     if k >= 0 && k < found.length then k else -1
 
+  // Swaps a top-level `val` with its neighbour in the text; functions stay where they are.
   fun move(source, name, dir) =
     let found = blocks(source)
     let i = found.findIndex(b => b.name == name && b.isVal)

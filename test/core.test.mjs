@@ -20,7 +20,7 @@ test('primitive tells tables, lists, atoms and blocks apart', () => {
   assert.equal(Primitive.make('s', 'x').kind, 'atom')
   const block = Primitive.make('b', { total: 3, rows: [[1], [2]], inner: { x: 1 } })
   assert.equal(block.kind, 'block')
-  assert.deepEqual(block.children.map((c) => [c.name, c.kind]), [['total', 'atom'], ['rows', 'table'], ['inner', 'block']])
+  assert.deepEqual(block.children.map((c) => [c.key, c.kind]), [['total', 'atom'], ['rows', 'table'], ['inner', 'block']])
 })
 
 test('a file can have several documents, and imports can rename and add text', () => {
@@ -30,8 +30,8 @@ test('a file can have several documents, and imports can rename and add text', (
   const report = Document.custom('C', 'a.mls', [Document.text('# Report'), Document.use('total'), Document.use('gone')])
   const children = (d) => Document.tree(d, available).children
   assert.deepEqual(Document.forFile([all, renamed, report, Document.custom('D', 'b.mls', [])], 'a.mls').map((d) => d.name), ['a.mls', 'B', 'C'])
-  assert.deepEqual(children(all).map((p) => p.title), ['sales', 'total'])
-  assert.equal(children(renamed)[0].title, 'Revenue')
+  assert.deepEqual(children(all).map((p) => p.name), ['sales', 'total'])
+  assert.equal(children(renamed)[0].name, 'Revenue')
   assert.deepEqual(children(report).map((p) => p.kind), ['text', 'atom', 'missing'])
   assert.equal(Document.tree(all, available).file, 'a.mls')
 })
@@ -58,10 +58,10 @@ test('source edit keeps the literal type', () => {
 
 test('controller turns exports into primitives and a document, and shifts past the header row', () => {
   const payload = { exports: { _$_modulePrivate_$_sales: [['a'], [1]], other: 1 }, source, file: 'a.mls' }
-  assert.deepEqual(Controller.primitives(payload).map((p) => p.name), ['sales'])
-  assert.deepEqual(Controller.document(payload).entries.map((e) => e.name), ['sales'])
+  assert.deepEqual(Controller.primitives(payload).map((p) => p.key), ['sales'])
+  assert.deepEqual(Controller.document(payload).entries.map((e) => e.key), ['sales'])
   const ordered = Controller.primitives({ exports: { _$_modulePrivate_$_b: 1, _$_modulePrivate_$_a: 2 }, source: 'val b = 1\nval a = 2\n' })
-  assert.deepEqual(ordered.map((p) => p.name), ['b', 'a'])
+  assert.deepEqual(ordered.map((p) => p.key), ['b', 'a'])
   const edit = Controller.edit({ source, path: ['sales'], kind: 'table', row: 0, col: 1, text: '99' })
   assert.equal(edit.source, source.replace('30', '99'))
 })
@@ -118,8 +118,8 @@ test('scope picks what the cursor is on: a variable, the binding or function aro
   assert.deepEqual(at('\n\nval total').length, 1)
   assert.deepEqual(Scope.names(src, src.indexOf('\n\nval total') + 1, names), [])
   assert.deepEqual(Scope.names('\n', 0, names), [])
-  const root = { kind: 'document', children: [{ kind: 'table', name: 'sales' }, { kind: 'chart', name: 'C', source: 'sales' }, { kind: 'atom', name: 'total' }] }
-  assert.deepEqual(Document.focus(root, ['sales']).children.map((i) => i.name), ['sales', 'C'])
+  const root = { kind: 'document', children: [{ kind: 'table', key: 'sales' }, { kind: 'chart', key: 'C', source: 'sales' }, { kind: 'atom', key: 'total' }] }
+  assert.deepEqual(Document.focus(root, ['sales']).children.map((i) => i.key), ['sales', 'C'])
   assert.equal(Document.focus(root, []).children.length, 3)
   assert.equal(Document.focus(root, ['nothing']).children.length, 3)
 })

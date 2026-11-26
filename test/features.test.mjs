@@ -64,7 +64,7 @@ test('a record with a chart type is a chart, whatever its name', async () => {
   const result = JSON.parse(stdout.trim().split('\n').pop())
   assert.ok(result.ok)
   const kids = result.tree.children
-  assert.deepEqual(kids.map((n) => [n.name, n.kind]), [['bars', 'chart'], ['trend', 'chart'], ['share', 'chart']])
+  assert.deepEqual(kids.map((n) => [n.key, n.kind]), [['bars', 'chart'], ['trend', 'chart'], ['share', 'chart']])
   assert.deepEqual(kids.map((n) => n.chart), ['Bar', 'Line', 'Pie'])
   assert.deepEqual(kids[1].series.map((s) => s.name), ['units', 'price'])
   assert.deepEqual(kids[1].labels, ['Tea', 'Coffee'])
@@ -75,7 +75,7 @@ test('a name that starts with an underscore is not shown, but charts can still r
   const sales = Primitive.make('_sales', [['m', 'v'], ['a', 1]])
   const spec = Primitive.make('c', { chart: 'Bar', source: '_sales', x: 'm', ys: ['v'] })
   const tree = Document.tree(Document.ofFile('f.mls', [sales, spec]), [sales, spec])
-  assert.deepEqual(tree.children.map((n) => [n.name, n.kind]), [['c', 'chart']])
+  assert.deepEqual(tree.children.map((n) => [n.key, n.kind]), [['c', 'chart']])
 })
 
 test('a chart node follows the cursor like any other, and a missing table shows as not found', () => {

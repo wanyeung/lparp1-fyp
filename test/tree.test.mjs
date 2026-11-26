@@ -22,18 +22,18 @@ const payload = {
 }
 const primitives = Controller.primitives(payload)
 const tree = Controller.tree(Controller.document(payload), primitives)
-const shape = (nodes) => nodes.map((n) => [n.name, n.kind])
+const shape = (nodes) => nodes.map((n) => [n.key, n.kind])
 const at = (needle, delta = 0) => Controller.scope(tree, text, text.indexOf(needle) + delta)
 
 test('primitive nests: a block holds tables, lists, atoms and blocks, and a list can hold blocks', () => {
-  assert.deepEqual(primitives.map((p) => p.name), ['inventory', 'teams', 'total'])
+  assert.deepEqual(primitives.map((p) => p.key), ['inventory', 'teams', 'total'])
   const [inv, people] = primitives
-  assert.deepEqual(inv.children.map((c) => [c.name, c.kind]), [['title', 'atom'], ['stock', 'table'], ['tags', 'list'], ['owner', 'block']])
+  assert.deepEqual(inv.children.map((c) => [c.key, c.kind]), [['title', 'atom'], ['stock', 'table'], ['tags', 'list'], ['owner', 'block']])
   assert.deepEqual(inv.children[1].path, ['inventory', 'stock'])
   assert.deepEqual(inv.children[3].children.map((c) => c.path), [['inventory', 'owner', 'name'], ['inventory', 'owner', 'floor']])
   assert.equal(people.kind, 'list')
   assert.deepEqual(people.rows, [])
-  assert.deepEqual(people.children.map((c) => [c.name, c.kind]), [['0', 'block'], ['1', 'block']])
+  assert.deepEqual(people.children.map((c) => [c.key, c.kind]), [['0', 'block'], ['1', 'block']])
   assert.deepEqual(people.children[0].path, ['teams', 0])
   assert.deepEqual(people.children[0].children[1].path, ['teams', 0, 'size'])
 })
@@ -55,7 +55,7 @@ test('primitive finds a nested node by name', () => {
 })
 
 test('controller leaves functions out of the primitives', () => {
-  assert.ok(!primitives.some((p) => p.name === 'report'))
+  assert.ok(!primitives.some((p) => p.key === 'report'))
 })
 
 test('document tree: sheets are the leaves, blocks and lists of structures are sections', () => {
@@ -66,7 +66,7 @@ test('document tree: sheets are the leaves, blocks and lists of structures are s
   assert.deepEqual(shape(inv.children), [['title', 'atom'], ['stock', 'table'], ['tags', 'list'], ['owner', 'block']])
   assert.deepEqual(shape(inv.children[3].children), [['name', 'atom'], ['floor', 'atom']])
   const first = tree.children[1].children[0]
-  assert.deepEqual([first.name, first.kind], ['0', 'block'])
+  assert.deepEqual([first.key, first.kind], ['0', 'block'])
   assert.deepEqual(shape(first.children), [['name', 'atom'], ['size', 'atom']])
 })
 
@@ -91,7 +91,7 @@ const declaredTree = Document.tree(declared, primitives)
 
 test('document tree: a document imports nested nodes by name and charts nested tables', () => {
   assert.deepEqual(declaredTree.children.map((n) => n.kind), ['text', 'table', 'chart', 'block', 'missing'])
-  assert.equal(declaredTree.children[1].title, 'Stock')
+  assert.equal(declaredTree.children[1].name, 'Stock')
   assert.deepEqual(declaredTree.children[1].path, ['inventory', 'stock'])
   assert.deepEqual(declaredTree.children[2].labels, ['Tea', 'Coffee'])
   assert.deepEqual(declaredTree.children[2].series, [{ name: 'units', values: [30, 45], paths: [['inventory', 'stock', 1, 1], ['inventory', 'stock', 2, 1]] }])
@@ -148,8 +148,8 @@ test('scope inside a nested literal falls back to the variable around it', () =>
   const inList = at('size: 4')
   assert.deepEqual(inList.names, ['size'])
   const people = inList.tree.children[0]
-  assert.deepEqual(people.children.map((c) => c.name), ['0', '1'])
-  assert.deepEqual(people.children.map((c) => c.children.map((x) => x.name)), [['size'], ['size']])
+  assert.deepEqual(people.children.map((c) => c.key), ['0', '1'])
+  assert.deepEqual(people.children.map((c) => c.children.map((x) => x.key)), [['size'], ['size']])
 })
 
 test('scope on a function shows what it mentions, and on a blank line the whole tree', () => {
@@ -237,7 +237,7 @@ test('a nested cell is edited in the source, and the next run shows it', async (
     return { source, primitives: Controller.primitives({ exports, source, file }) }
   }
   const before = await run()
-  assert.deepEqual(before.primitives.map((p) => p.name), ['inventory', 'teams', 'total'])
+  assert.deepEqual(before.primitives.map((p) => p.key), ['inventory', 'teams', 'total'])
   const stock = Primitive.find(before.primitives, 'stock')[0]
   assert.equal(stock.rows[1][1], 45)
   const first = Controller.edit({ source: before.source, path: stock.path, kind: stock.kind, row: 1, col: 1, text: '50' })

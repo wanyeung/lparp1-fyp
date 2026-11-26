@@ -2,58 +2,63 @@ import "./Primitive.mls"
 
 module Document with
 
-  fun use(name) = { kind: "import", name: name, title: name }
+  fun use(key) = { kind: "import", key: key, name: key }
 
-  fun useAs(name, title) = { kind: "import", name: name, title: title }
+  fun useAs(key, name) = { kind: "import", key: key, name: name }
 
   fun text(markdown) = { kind: "markdown", text: markdown }
 
   fun custom(name, file, entries) = { name: name, file: file, entries: entries }
 
-  fun hidden(p) = p.name.startsWith("_")
+  // A name that starts with `_` is not shown, but charts can still read it.
+  fun hidden(p) = p.key.startsWith("_")
 
-  fun ofFile(file, primitives) = custom(file, file, primitives.filter(p => hidden(p) == false).map(p => use(p.name)))
+  // The default document: every top-level value that is not hidden.
+  fun ofFile(file, primitives) = custom(file, file, primitives.filter(p => hidden(p) == false).map(p => use(p.key)))
 
   fun forFile(documents, file) = documents.filter(d => d.file == file)
 
-  fun chart(family, title, source, x, ys) =
-    { kind: "chart", chart: family, title: title, source: source, x: x, ys: ys }
+  fun chart(family, name, source, x, ys) =
+    { kind: "chart", chart: family, name: name, source: source, x: x, ys: ys }
 
-  fun missing(name) = { kind: "missing", name: name, title: name }
+  fun missing(key) = { kind: "missing", key: key, name: key }
 
   fun column(grid, y) =
     let col = grid.headers.indexOf(y)
     { name: y, values: grid.rows.map(row => row.at(col)), paths: grid.rows.map((row, r) => if Primitive.imported(grid) then null else Primitive.cellPath(grid, r, col)) }
 
-  fun chartNode(name, title, spec, available) =
+  // Builds a chart node: finds the source table by key, takes the x column as labels and one series per y with each value cell path. A missing table or column gives a `missing` node.
+  fun chartNode(key, name, spec, available) =
     let hits = Primitive.find(available, spec.source).filter(p => p.kind == "table")
-    if hits.length == 0 then missing(name)
-    else if hits.0.headers.indexOf(spec.x) < 0 then missing(name)
+    if hits.length == 0 then missing(key)
+    else if hits.0.headers.indexOf(spec.x) < 0 then missing(key)
     else
-      { kind: "chart", name: name, title: title, path: [name], chart: spec.chart, source: spec.source, x: spec.x,
+      { kind: "chart", key: key, name: name, path: [key], chart: spec.chart, source: spec.source, x: spec.x,
         labels: hits.0.rows.map(row => row.at(hits.0.headers.indexOf(spec.x))),
         series: spec.ys.map(y => column(hits.0, y)) }
 
-  fun resolve(p, title, available) =
-    if p.kind == "chart" then chartNode(p.name, title, p.spec, available)
-    else { ...p, title: title, children: p.children.map(c => resolve(c, c.title, available)) }
+  fun resolve(p, name, available) =
+    if p.kind == "chart" then chartNode(p.key, name, p.spec, available)
+    else { ...p, name: name, children: p.children.map(c => resolve(c, c.name, available)) }
 
+  // Resolves one entry: Markdown, a chart, or an imported node.
   fun item(entry, available) =
     if entry.kind == "markdown" then { kind: "text", text: entry.text }
-    else if entry.kind == "chart" then chartNode(entry.title, entry.title, entry, available)
+    else if entry.kind == "chart" then chartNode(entry.name, entry.name, entry, available)
     else
-      let hits = Primitive.find(available, entry.name)
-      if hits.length == 0 then missing(entry.name) else resolve(hits.0, entry.title, available)
+      let hits = Primitive.find(available, entry.key)
+      if hits.length == 0 then missing(entry.key) else resolve(hits.0, entry.name, available)
 
+  // Resolves the entries of a document into the root node of the tree.
   fun tree(document, available) =
-    { kind: "document", name: document.name, title: document.name, path: [], file: document.file,
+    { kind: "document", key: document.name, name: document.name, path: [], file: document.file,
       children: document.entries.map(entry => item(entry, available)) }
 
   fun named(node) =
     if node.path is Array then globalThis.Number.isFinite(node.path.at(node.path.length - 1)) == false else false
 
   fun namesOf(node) =
-    let own = if named(node) then [node.name] else []
+    let own = if named(node) then [node.key] else []
     if node.children is Array then own.concat(namesIn(node.children)) else own
 
   fun namesIn(nodes) = nodes.flatMap(node => namesOf(node))
@@ -61,7 +66,7 @@ module Document with
   fun names(tree) = namesIn(tree.children)
 
   fun hit(node, picked) =
-    if picked.includes(node.name) then true
+    if picked.includes(node.key) then true
     else if node.kind == "chart" then picked.includes(node.source)
     else false
 
@@ -74,6 +79,7 @@ module Document with
 
   fun focusAll(nodes, picked) = nodes.flatMap(node => prune(node, picked))
 
+  // Prunes the tree to the picked keys and keeps their ancestors. Nothing picked, or nothing matched, shows everything.
   fun focus(tree, picked) =
     let kept = focusAll(tree.children, picked)
     if picked.length == 0 then tree

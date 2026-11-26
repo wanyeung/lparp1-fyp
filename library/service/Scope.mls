@@ -3,6 +3,7 @@ import "../model/Document.mls"
 
 module Scope with
 
+  // The keys the cursor picks: the word under it, else the declaration it is in, else what that declaration mentions.
   fun names(source, offset, available) =
     let w = Source.word(source, offset)
     if Source.blankLine(source, offset) then []
@@ -13,6 +14,7 @@ module Scope with
       else if available.includes(r.name) then [r.name]
       else available.filter(n => Source.mentions(source.slice(r.from, r.to), n))
 
+  // The tree pruned to what the cursor is on.
   fun view(tree, source, offset) =
     let picked = names(source, offset, Document.names(tree))
     { names: picked, tree: Document.focus(tree, picked) }

@@ -15,7 +15,7 @@ test('the vscode host runner prints the document tree of a saved file', async ()
   const { stdout } = await exec(process.execPath, [path.join(root, 'vscodehost', 'src', 'services', 'worker.mjs'), file])
   const result = JSON.parse(stdout.trim().split('\n').pop())
   assert.ok(result.ok)
-  assert.deepEqual(result.tree.children.map((n) => [n.name, n.kind]), [['sales', 'table'], ['teams', 'list'], ['total', 'atom']])
+  assert.deepEqual(result.tree.children.map((n) => [n.key, n.kind]), [['sales', 'table'], ['teams', 'list'], ['total', 'atom']])
   assert.equal(result.tree.file, file)
 })
 

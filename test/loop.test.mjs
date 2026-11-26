@@ -16,7 +16,7 @@ test('save, run, show, edit, patch, run again', async () => {
     const compiled = await compileFile(file)
     assert.ok(compiled.ok)
     const exports = await importFresh(file.replace(/\.mls$/, '.mjs'))
-    return Controller.primitives({ exports, source: await readFile(file, 'utf8'), file }).find((g) => g.name === 'sales')
+    return Controller.primitives({ exports, source: await readFile(file, 'utf8'), file }).find((g) => g.key === 'sales')
   }
 
   const before = await run()

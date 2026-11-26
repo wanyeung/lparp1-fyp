@@ -71,6 +71,7 @@ function isNumber(label) {
   return String(label).trim() !== '' && Number.isFinite(Number(label));
 }
 
+// Shared scale of all series: a numeric x axis when every label is a number, else the index; y always includes 0 and negatives.
 function seriesFrame(chart) {
   const width = 640;
   const height = 250;
@@ -114,6 +115,7 @@ function seriesGrid(svg, frame) {
   }
 }
 
+// Draws every series of a line-like chart in one SVG with a legend and per-point drag.
 function renderSeries(chart, type) {
   const frame = seriesFrame(chart);
   const svg = svgEl('svg', { viewBox: '0 0 ' + frame.width + ' ' + frame.height, class: 'series', role: 'img', 'aria-label': chart.title });
@@ -157,6 +159,7 @@ function seriesLegend(chart) {
   return el('div', { class: 'legend' }, chart.series.map((entry, index) => el('span', {}, [swatch(index), entry.name])));
 }
 
+// Turns a drag of one point into an edit message for that cell path.
 function bindPointDrag(svg, dot, bar, frame) {
   dot.addEventListener('pointerdown', (event) => {
     if (state.editing) return;
@@ -431,6 +434,7 @@ function renderCategory(chart, type) {
   return el('div', {}, [el('h1', { text: chart.title }), ...plot]);
 }
 
+// Draws by family: one value per label, or a value along an axis.
 function renderChart(chart, type) {
   if (chart.error) return el('p', { class: 'missing', text: chart.error });
   const series = chart.series.filter((entry) => entry.bars.length);
@@ -444,6 +448,7 @@ function renderChart(chart, type) {
   ]);
 }
 
+// The family name from the source, lower-cased; an unknown name falls back to bar.
 function initialType(name) {
   const type = String(name).toLowerCase();
   return TYPES.includes(type) ? type : 'bar';
@@ -453,6 +458,7 @@ function decimalsOf(values) {
   return Math.max(0, ...values.map((value) => (String(value).split('.')[1] || '').length));
 }
 
+// One series as bars: label, value and the cell path to write back to.
 function barsOf(series, labels) {
   const decimals = decimalsOf(series.values);
   return labels.map((label, index) => {
@@ -473,9 +479,10 @@ function toEdit(message) {
   return { type: 'edit', path: message.path, kind: 'atom', header: false, row: 0, col: 0, text: message.value };
 }
 
+// Builds one model for the node, draws it and lets the reader switch the family.
 function mountChart(host, node) {
   const model = {
-    title: node.title,
+    title: node.name,
     source: node.source,
     series: node.series.map((series) => ({ name: series.name, bars: barsOf(series, node.labels) })),
   };
