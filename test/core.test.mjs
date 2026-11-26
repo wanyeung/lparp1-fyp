@@ -1,11 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import Primitive from '../build/library/model/Primitive.mjs'
-import Sheet from '../build/library/model/Sheet.mjs'
 import Document from '../build/library/model/Document.mjs'
-import Chart from '../build/library/model/Chart.mjs'
 import Source from '../build/library/service/Source.mjs'
 import SourceEdit from '../build/library/service/SourceEdit.mjs'
+import Scope from '../build/library/service/Scope.mjs'
 import Html from '../build/library/service/Html.mjs'
 import Csv from '../build/library/io/Csv.mjs'
 import Export from '../build/library/io/Export.mjs'
@@ -24,78 +23,61 @@ test('primitive tells tables, lists, atoms and blocks apart', () => {
   assert.deepEqual(block.children.map((c) => [c.name, c.kind]), [['total', 'atom'], ['rows', 'table'], ['inner', 'block']])
 })
 
-test('rename changes the title and keeps the source name', () => {
-  const renamed = Primitive.rename(Primitive.make('sales', [['a'], [1]]), 'Revenue')
-  assert.equal(renamed.title, 'Revenue')
-  assert.equal(renamed.name, 'sales')
-})
-
-test('sheet records the file it references and whether it is derived', () => {
-  const base = Sheet.make('base', 'a.mls', [Primitive.make('x', 1)])
-  assert.deepEqual(base.meta, { file: 'a.mls', derived: false, sources: [] })
-  const derived = Sheet.derive('view', 'b.mls', ['base'], [])
-  assert.deepEqual(derived.meta, { file: 'b.mls', derived: true, sources: ['base'] })
-})
-
 test('a file can have several documents, and imports can rename and add text', () => {
   const available = [Primitive.make('sales', [['a'], [1]]), Primitive.make('total', 9)]
   const all = Document.ofFile('a.mls', available)
   const renamed = Document.custom('B', 'a.mls', [Document.useAs('sales', 'Revenue')])
   const report = Document.custom('C', 'a.mls', [Document.text('# Report'), Document.use('total'), Document.use('gone')])
+  const children = (d) => Document.tree(d, available).children
   assert.deepEqual(Document.forFile([all, renamed, report, Document.custom('D', 'b.mls', [])], 'a.mls').map((d) => d.name), ['a.mls', 'B', 'C'])
-  assert.deepEqual(Document.resolve(all, available).map((p) => p.title), ['sales', 'total'])
-  assert.equal(Document.resolve(renamed, available)[0].title, 'Revenue')
-  assert.deepEqual(Document.resolve(report, available).map((p) => p.kind), ['markdown', 'atom', 'missing'])
-  assert.equal(Document.ofSheet(Sheet.make('s', 'a.mls', available)).file, 'a.mls')
-})
-
-test('chart lists the chart types', () => {
-  assert.deepEqual([Chart.Bar, Chart.Line, Chart.Pie], ['Bar', 'Line', 'Pie'])
-  assert.deepEqual(Chart.all, ['Bar', 'Line', 'Pie'])
+  assert.deepEqual(children(all).map((p) => p.title), ['sales', 'total'])
+  assert.equal(children(renamed)[0].title, 'Revenue')
+  assert.deepEqual(children(report).map((p) => p.kind), ['text', 'atom', 'missing'])
+  assert.equal(Document.tree(all, available).file, 'a.mls')
 })
 
 test('source locates a cell and skips commas inside strings', () => {
-  const [from, to] = Source.locate(source, 'sales', 2, 0)
+  const [from, to] = Source.locate(source, ['sales', 2, 0])
   assert.equal(source.slice(from, to), '"Coffee, hot"')
-  assert.equal(Source.locate(source, 'sales', 9, 0), null)
-  assert.equal(Source.locate(source, 'missing', 0, 0), null)
+  assert.equal(Source.locate(source, ['sales', 9, 0]), null)
+  assert.equal(Source.locate(source, ['missing', 0, 0]), null)
 })
 
 test('source ignores a binding that only appears in a comment', () => {
   const text = '// val sales = [[1]]\n' + source
-  const [from, to] = Source.locate(text, 'sales', 1, 1)
+  const [from, to] = Source.locate(text, ['sales', 1, 1])
   assert.equal(text.slice(from, to), '30')
 })
 
 test('source edit keeps the literal type', () => {
-  assert.equal(SourceEdit.setCell(source, 'sales', 1, 1, '31').source, source.replace('30', '31'))
-  assert.equal(SourceEdit.setCell(source, 'sales', 1, 0, 'Matcha').source, source.replace('"Tea"', '"Matcha"'))
-  assert.equal(SourceEdit.setCell(source, 'sales', 1, 1, 'abc').ok, false)
-  assert.equal(SourceEdit.setCell(source, 'sales', 1, 1, '').ok, false)
+  assert.equal(SourceEdit.at(source, ['sales', 1, 1], '31').source, source.replace('30', '31'))
+  assert.equal(SourceEdit.at(source, ['sales', 1, 0], 'Matcha').source, source.replace('"Tea"', '"Matcha"'))
+  assert.equal(SourceEdit.at(source, ['sales', 1, 1], 'abc').ok, false)
+  assert.equal(SourceEdit.at(source, ['sales', 1, 1], '').ok, false)
 })
 
-test('controller turns exports into primitives, a sheet and a document, and shifts past the header row', () => {
+test('controller turns exports into primitives and a document, and shifts past the header row', () => {
   const payload = { exports: { _$_modulePrivate_$_sales: [['a'], [1]], other: 1 }, source, file: 'a.mls' }
   assert.deepEqual(Controller.primitives(payload).map((p) => p.name), ['sales'])
-  assert.equal(Controller.sheet(payload).meta.file, 'a.mls')
   assert.deepEqual(Controller.document(payload).entries.map((e) => e.name), ['sales'])
   const ordered = Controller.primitives({ exports: { _$_modulePrivate_$_b: 1, _$_modulePrivate_$_a: 2 }, source: 'val b = 1\nval a = 2\n' })
   assert.deepEqual(ordered.map((p) => p.name), ['b', 'a'])
-  const edit = Controller.edit({ source, name: 'sales', kind: 'table', row: 0, col: 1, text: '99' })
+  const edit = Controller.edit({ source, path: ['sales'], kind: 'table', row: 0, col: 1, text: '99' })
   assert.equal(edit.source, source.replace('30', '99'))
 })
 
-test('html escapes values, carries the nonce, shows titles, and keeps blocks and markdown read-only', () => {
-  const page = Html.generateHtml([Primitive.make('t', [['<b>'], ['a&b']])], 'abc', '')
+test('html escapes values, carries the nonce, shows titles, and renders markdown and missing imports', () => {
+  const tableOnly = (value) => Document.tree(Document.ofFile('a.mls', [Primitive.make('t', value)]), [Primitive.make('t', value)])
+  const page = Html.generateHtml(tableOnly([['<b>'], ['a&b']]), 'abc', '')
   assert.ok(page.includes('&lt;b&gt;'))
   assert.ok(page.includes('a&amp;b'))
   assert.ok(page.includes('nonce="abc"'))
   assert.ok(!page.includes('<b>'))
-  const items = [Primitive.rename(Primitive.make('t', [['a'], [1]]), 'Shown'), Primitive.make('b', { x: [['h'], [2]] }), { kind: 'markdown', text: '# Head\nbody <i>' }, { kind: 'missing', name: 'gone' }]
-  const html = Html.generateHtml(items, 'n', '')
+  const available = [Primitive.make('t', [['a'], [1]])]
+  const document = Document.custom('D', 'a.mls', [Document.useAs('t', 'Shown'), Document.text('# Head\nbody <i>'), Document.use('gone')])
+  const html = Html.generateHtml(Document.tree(document, available), 'n', '')
   assert.ok(html.includes('Shown'))
-  assert.ok(html.includes('data-name="t"'))
-  assert.ok(!html.includes('data-name="x"'))
+  assert.ok(html.includes('data-path="[&quot;t&quot;]"'))
   assert.ok(html.includes('<h2>Head</h2>'))
   assert.ok(html.includes('body &lt;i&gt;'))
   assert.ok(html.includes('Not found: gone'))
@@ -113,30 +95,31 @@ test('grid treats an empty array as an empty list', () => {
 
 test('a document can chart columns of a table, and the page carries the chart script', () => {
   const sales = Primitive.make('sales', [['month', 'a', 'b'], [1, 10, 20], [2, 30, 40]])
-  const doc = Document.custom('D', 'a.mls', [Document.chart(Chart.Line, 'Both', 'sales', 'month', ['a', 'b']), Document.chart(Chart.Bar, 'Bad', 'sales', 'nope', ['a']), Document.chart(Chart.Bar, 'Lost', 'gone', 'month', ['a'])])
-  const [chart, bad, lost] = Document.resolve(doc, [sales])
+  const doc = Document.custom('D', 'a.mls', [Document.chart('Line', 'Both', 'sales', 'month', ['a', 'b']), Document.chart('Bar', 'Bad', 'sales', 'nope', ['a']), Document.chart('Bar', 'Lost', 'gone', 'month', ['a'])])
+  const root = Document.tree(doc, [sales])
+  const [chart, bad, lost] = root.children
   assert.deepEqual([chart.kind, chart.chart, chart.labels], ['chart', 'Line', [1, 2]])
-  assert.deepEqual(chart.series, [{ name: 'a', values: [10, 30] }, { name: 'b', values: [20, 40] }])
+  assert.deepEqual(chart.series, [{ name: 'a', values: [10, 30], paths: [['sales', 1, 1], ['sales', 2, 1]] }, { name: 'b', values: [20, 40], paths: [['sales', 1, 2], ['sales', 2, 2]] }])
   assert.deepEqual([bad.kind, lost.kind], ['missing', 'missing'])
-  const page = Html.generateHtml([chart], 'n', 'window.MlsCharts = 1')
+  const page = Html.generateHtml({ children: [chart] }, 'n', 'window.marks = 1')
   assert.ok(page.includes('class="chart" data-chart="'))
-  assert.ok(page.includes('<script nonce="n">window.MlsCharts = 1</script>'))
+  assert.ok(page.includes('<script type="module" nonce="n">window.marks = 1</script>'))
 })
 
 test('scope picks what the cursor is on: a variable, the binding or function around it, or nothing', () => {
   const src = 'val sales = [\n  ["a"],\n  [1]\n]\n\nval total = 75\n\nfun report(x) =\n  sales.length + x\n'
   const names = ['sales', 'total']
-  const at = (s) => Controller.focus(src, src.indexOf(s), names)
+  const at = (s) => Scope.names(src, src.indexOf(s), names)
   assert.deepEqual(at('sales ='), ['sales'])
   assert.deepEqual(at('[1]'), ['sales'])
   assert.deepEqual(at('75'), ['total'])
   assert.deepEqual(at('x)'), ['sales'])
-  assert.deepEqual(Controller.focus('// notes\nval total = 1\n', 2, ['total']), [])
+  assert.deepEqual(Scope.names('// notes\nval total = 1\n', 2, ['total']), [])
   assert.deepEqual(at('\n\nval total').length, 1)
-  assert.deepEqual(Controller.focus(src, src.indexOf('\n\nval total') + 1, names), [])
-  assert.deepEqual(Controller.focus('\n', 0, names), [])
-  const items = [{ name: 'sales', kind: 'table' }, { name: 'C', kind: 'chart', source: 'sales' }, { name: 'total', kind: 'atom' }]
-  assert.deepEqual(Document.focus(items, ['sales']).map((i) => i.name), ['sales', 'C'])
-  assert.equal(Document.focus(items, []).length, 3)
-  assert.equal(Document.focus(items, ['nothing']).length, 3)
+  assert.deepEqual(Scope.names(src, src.indexOf('\n\nval total') + 1, names), [])
+  assert.deepEqual(Scope.names('\n', 0, names), [])
+  const root = { kind: 'document', children: [{ kind: 'table', name: 'sales' }, { kind: 'chart', name: 'C', source: 'sales' }, { kind: 'atom', name: 'total' }] }
+  assert.deepEqual(Document.focus(root, ['sales']).children.map((i) => i.name), ['sales', 'C'])
+  assert.equal(Document.focus(root, []).children.length, 3)
+  assert.equal(Document.focus(root, ['nothing']).children.length, 3)
 })

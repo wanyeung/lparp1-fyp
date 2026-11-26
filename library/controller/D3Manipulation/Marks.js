@@ -1,6 +1,9 @@
 export const state = { editing: false, post: (message) => console.log(message) };
 
 const SLICE_COLORS = ['#3794ff', '#3fb950', '#e5a119', '#f14c4c', '#a371f7', '#39c5cf', '#d18616', '#73c991', '#db61a2', '#8b949e'];
+const CATEGORY_TYPES = ['bar', 'column', 'pie', 'donut', 'radar'];
+const SERIES_TYPES = ['line', 'area', 'step', 'scatter', 'lollipop'];
+const TYPES = [...CATEGORY_TYPES, ...SERIES_TYPES];
 
 function el(tag, attrs, children) {
   const node = document.createElement(tag);
@@ -28,19 +31,29 @@ function svgEl(tag, attrs) {
   return node;
 }
 
+function svgText(x, y, anchor, text) {
+  const node = svgEl('text', { x, y, 'text-anchor': anchor, 'font-size': 10, fill: 'currentColor' });
+  node.textContent = text;
+  return node;
+}
+
+function tooltip(text) {
+  const node = svgEl('title', {});
+  node.textContent = text;
+  return node;
+}
+
+function shown(value) {
+  return value == null ? '—' : String(value);
+}
+
+function rounded(value) {
+  return String(Math.round(value * 100) / 100);
+}
+
 function chartScale(chart) {
   const values = chart.bars.map((bar) => Math.abs(bar.value || 0));
   return Math.max(1, ...values, 0) * 1.25;
-}
-
-function seriesPoints(chart, scale, width, height, pad) {
-  const count = chart.bars.length;
-  const step = count <= 1 ? 0 : (width - pad * 2) / (count - 1);
-  return chart.bars.map((bar, index) => ({
-    x: pad + index * step,
-    y: height - pad - (Math.max(0, bar.value || 0) / scale) * (height - pad * 2),
-    bar,
-  }));
 }
 
 function polylinePoints(points, stepped) {
@@ -54,41 +67,119 @@ function polylinePoints(points, stepped) {
   return parts.join(' ');
 }
 
-function renderSeries(chart, type, scale) {
+function isNumber(label) {
+  return String(label).trim() !== '' && Number.isFinite(Number(label));
+}
+
+function seriesFrame(chart) {
   const width = 640;
-  const height = 220;
-  const pad = 24;
-  const points = seriesPoints(chart, scale, width, height, pad);
-  const stepped = type === 'step';
-  const line = polylinePoints(points, stepped);
-  const baseline = height - pad;
-  const svg = svgEl('svg', { viewBox: '0 0 ' + width + ' ' + height, class: 'series', role: 'img', 'aria-label': chart.title });
-  if (type === 'area' && points.length) {
-    const area = points[0].x + ',' + baseline + ' ' + line + ' ' + points[points.length - 1].x + ',' + baseline;
-    svg.append(svgEl('polygon', { points: area, class: 'area' }));
-  }
-  if (type === 'lollipop') {
-    points.forEach((point) => {
-      svg.append(svgEl('line', { x1: point.x, y1: baseline, x2: point.x, y2: point.y, class: 'stem' }));
-    });
-  }
-  if ((type === 'line' || type === 'area' || type === 'step') && line) {
-    svg.append(svgEl('polyline', { points: line, class: 'line' }));
-  }
-  points.forEach((point) => {
-    const dot = svgEl('circle', {
-      cx: point.x,
-      cy: point.y,
-      r: point.bar.editable ? 5 : 3.5,
-      class: point.bar.editable ? 'dot edit' : 'dot',
-    });
-    if (point.bar.editable) bindPointDrag(svg, dot, point.bar, scale, height, pad);
-    svg.append(dot);
+  const height = 250;
+  const left = 48;
+  const right = 18;
+  const top = 16;
+  const bottom = 30;
+  const labels = chart.series[0].bars.map((bar) => bar.label);
+  const numeric = labels.length > 0 && labels.every(isNumber);
+  const xs = labels.map((label, index) => (numeric ? Number(label) : index));
+  const values = chart.series.flatMap((entry) => entry.bars.map((bar) => bar.value)).filter((value) => value != null);
+  const high = Math.max(0, ...values);
+  const low = Math.min(0, ...values);
+  const ymax = high > 0 ? high * 1.25 : 1;
+  const ymin = low < 0 ? low * 1.25 : 0;
+  let xmin = Math.min(...xs);
+  let xmax = Math.max(...xs);
+  if (xmin === xmax) { xmin -= 0.5; xmax += 0.5; }
+  return {
+    width, height, left, right, top, bottom, labels, numeric, xs, xmin, xmax, ymin, ymax,
+    px: (x) => left + ((x - xmin) / (xmax - xmin)) * (width - left - right),
+    py: (y) => height - bottom - ((y - ymin) / (ymax - ymin)) * (height - top - bottom),
+  };
+}
+
+function seriesGrid(svg, frame) {
+  [0, 0.25, 0.5, 0.75, 1].forEach((fraction) => {
+    const value = frame.ymin + fraction * (frame.ymax - frame.ymin);
+    const y = frame.py(value);
+    svg.append(svgEl('line', { x1: frame.left, y1: y, x2: frame.width - frame.right, y2: y, class: 'grid' }));
+    svg.append(svgText(frame.left - 6, y + 3, 'end', rounded(value)));
   });
-  return el('div', {}, [
-    svg,
-    el('div', { class: 'ticks' }, points.map((point) => el('span', { text: point.bar.label }))),
-  ]);
+  svg.append(svgEl('line', { x1: frame.left, y1: frame.py(0), x2: frame.width - frame.right, y2: frame.py(0), class: 'zero' }));
+  if (frame.numeric) {
+    [0, 0.25, 0.5, 0.75, 1].forEach((fraction) => {
+      const value = frame.xmin + fraction * (frame.xmax - frame.xmin);
+      svg.append(svgText(frame.px(value), frame.height - 8, 'middle', rounded(value)));
+    });
+  } else {
+    frame.labels.forEach((label, index) => svg.append(svgText(frame.px(frame.xs[index]), frame.height - 8, 'middle', String(label))));
+  }
+}
+
+function renderSeries(chart, type) {
+  const frame = seriesFrame(chart);
+  const svg = svgEl('svg', { viewBox: '0 0 ' + frame.width + ' ' + frame.height, class: 'series', role: 'img', 'aria-label': chart.title });
+  seriesGrid(svg, frame);
+  const baseline = frame.py(0);
+  chart.series.forEach((entry, order) => {
+    const color = SLICE_COLORS[order % SLICE_COLORS.length];
+    const points = entry.bars
+      .map((bar, index) => ({ bar, x: frame.px(frame.xs[index]), y: bar.value == null ? null : frame.py(bar.value) }))
+      .filter((point) => point.y !== null);
+    const line = polylinePoints(points, type === 'step');
+    if (type === 'area' && points.length) {
+      const area = points[0].x + ',' + baseline + ' ' + line + ' ' + points[points.length - 1].x + ',' + baseline;
+      svg.append(svgEl('polygon', { points: area, class: 'area', fill: color }));
+    }
+    if (type === 'lollipop') {
+      points.forEach((point) => {
+        svg.append(svgEl('line', { x1: point.x, y1: baseline, x2: point.x, y2: point.y, class: 'stem', stroke: color }));
+      });
+    }
+    if ((type === 'line' || type === 'area' || type === 'step') && line) {
+      svg.append(svgEl('polyline', { points: line, class: 'line', stroke: color }));
+    }
+    points.forEach((point) => {
+      const dot = svgEl('circle', {
+        cx: point.x,
+        cy: point.y,
+        r: point.bar.editable ? 5 : 3.5,
+        class: point.bar.editable ? 'dot edit' : 'dot',
+        fill: color,
+      });
+      if (point.bar.editable) bindPointDrag(svg, dot, point.bar, frame);
+      dot.append(tooltip(entry.name + ' · ' + point.bar.label + ': ' + point.bar.value));
+      svg.append(dot);
+    });
+  });
+  return el('div', {}, [svg, seriesLegend(chart)]);
+}
+
+function seriesLegend(chart) {
+  return el('div', { class: 'legend' }, chart.series.map((entry, index) => el('span', {}, [swatch(index), entry.name])));
+}
+
+function bindPointDrag(svg, dot, bar, frame) {
+  dot.addEventListener('pointerdown', (event) => {
+    if (state.editing) return;
+    event.preventDefault();
+    try { dot.setPointerCapture(event.pointerId); } catch (error) { /* the pointer can still move */ }
+    let value = bar.value;
+    const move = (pointer) => {
+      const rect = svg.getBoundingClientRect();
+      const y = rect.height <= 0 ? frame.py(bar.value) : ((pointer.clientY - rect.top) / rect.height) * frame.height;
+      const ratio = Math.min(1, Math.max(0, (frame.height - frame.bottom - y) / (frame.height - frame.top - frame.bottom)));
+      const factor = 10 ** (bar.decimals || 0);
+      value = Math.round((frame.ymin + ratio * (frame.ymax - frame.ymin)) * factor) / factor;
+      dot.setAttribute('cy', String(frame.py(value)));
+    };
+    const stop = () => {
+      dot.removeEventListener('pointermove', move);
+      dot.removeEventListener('pointerup', stop);
+      postPatch(bar, value);
+    };
+    dot.addEventListener('pointermove', move);
+    dot.addEventListener('pointerup', stop);
+    move(event);
+  });
 }
 
 function renderColumns(chart, scale) {
@@ -98,7 +189,7 @@ function renderColumns(chart, scale) {
     const fill = el('div', { class: 'col-fill' });
     fill.style.height = height + '%';
     track.append(fill);
-    const value = el('span', { class: 'col-value', text: bar.value == null ? '—' : String(bar.value) });
+    const value = el('span', { class: 'col-value', text: shown(bar.value) });
     if (bar.editable) bindColumnDrag(track, fill, value, bar, scale);
     return el('div', { class: 'column' }, [
       value,
@@ -113,19 +204,19 @@ function bindColumnDrag(track, fill, valueNode, bar, scale) {
     if (state.editing) return;
     event.preventDefault();
     try { track.setPointerCapture(event.pointerId); } catch (error) { /* the pointer can still move */ }
-    let shown = bar.value;
+    let value = bar.value;
     const move = (pointer) => {
       const rect = track.getBoundingClientRect();
       const ratio = rect.height <= 0 ? 0 : Math.min(1, Math.max(0, 1 - (pointer.clientY - rect.top) / rect.height));
       const factor = 10 ** (bar.decimals || 0);
-      shown = Math.round(ratio * scale * factor) / factor;
-      fill.style.height = Math.max(0, Math.min(100, (shown / scale) * 100)) + '%';
-      valueNode.textContent = String(shown);
+      value = Math.round(ratio * scale * factor) / factor;
+      fill.style.height = Math.max(0, Math.min(100, (value / scale) * 100)) + '%';
+      valueNode.textContent = String(value);
     };
     const stop = () => {
       track.removeEventListener('pointermove', move);
       track.removeEventListener('pointerup', stop);
-      postPatch(bar, shown);
+      postPatch(bar, value);
     };
     track.addEventListener('pointermove', move);
     track.addEventListener('pointerup', stop);
@@ -155,6 +246,7 @@ function renderPie(chart, type) {
       d: slicePath(cx, cy, outer, inner, angle, end),
       fill: SLICE_COLORS[index % SLICE_COLORS.length],
     });
+    path.append(tooltip(bar.label + ': ' + shown(bar.value)));
     svg.append(path);
     angle += sweep;
   });
@@ -202,27 +294,22 @@ function renderRadar(chart) {
     const at = polar(cx, cy, radius * ratio, index, count);
     const edge = polar(cx, cy, radius, index, count);
     svg.append(svgEl('line', { x1: cx, y1: cy, x2: edge.x, y2: edge.y, class: 'grid' }));
-    const label = svgEl('text', { x: edge.x, y: edge.y, fill: 'currentColor', 'font-size': 11, 'text-anchor': 'middle' });
-    label.textContent = bar.label;
-    svg.append(label);
+    svg.append(svgText(edge.x, edge.y, 'middle', bar.label));
     return { bar, at, index };
   });
-  svg.append(svgEl('polygon', {
-    points: dots.map((dot) => dot.at.x + ',' + dot.at.y).join(' '),
-    class: 'area',
-  }));
-  svg.append(svgEl('polygon', {
-    points: dots.map((dot) => dot.at.x + ',' + dot.at.y).join(' '),
-    class: 'line',
-  }));
+  const outline = dots.map((dot) => dot.at.x + ',' + dot.at.y).join(' ');
+  svg.append(svgEl('polygon', { points: outline, class: 'area', fill: SLICE_COLORS[0] }));
+  svg.append(svgEl('polygon', { points: outline, class: 'line', stroke: SLICE_COLORS[0] }));
   dots.forEach((dot) => {
     const mark = svgEl('circle', {
       cx: dot.at.x,
       cy: dot.at.y,
       r: dot.bar.editable ? 5 : 3.5,
       class: dot.bar.editable ? 'dot edit' : 'dot',
+      fill: SLICE_COLORS[0],
     });
     if (dot.bar.editable) bindRadarDrag(svg, mark, dot.bar, scale, cx, cy, radius, dot.index, count);
+    mark.append(tooltip(dot.bar.label + ': ' + shown(dot.bar.value)));
     svg.append(mark);
   });
   return el('div', {}, [svg, legend(chart)]);
@@ -239,7 +326,7 @@ function bindRadarDrag(svg, mark, bar, scale, cx, cy, radius, index, count) {
     if (state.editing) return;
     event.preventDefault();
     try { mark.setPointerCapture(event.pointerId); } catch (error) { /* the pointer can still move */ }
-    let shown = bar.value;
+    let value = bar.value;
     const move = (pointer) => {
       const rect = svg.getBoundingClientRect();
       const box = svg.viewBox.baseVal;
@@ -248,7 +335,7 @@ function bindRadarDrag(svg, mark, bar, scale, cx, cy, radius, index, count) {
       const projection = (px - cx) * spoke.x + (py - cy) * spoke.y;
       const ratio = Math.min(1, Math.max(0, projection / radius));
       const factor = 10 ** (bar.decimals || 0);
-      shown = Math.round(ratio * scale * factor) / factor;
+      value = Math.round(ratio * scale * factor) / factor;
       const at = polar(cx, cy, radius * ratio, index, count);
       mark.setAttribute('cx', String(at.x));
       mark.setAttribute('cy', String(at.y));
@@ -256,7 +343,7 @@ function bindRadarDrag(svg, mark, bar, scale, cx, cy, radius, index, count) {
     const stop = () => {
       mark.removeEventListener('pointermove', move);
       mark.removeEventListener('pointerup', stop);
-      postPatch(bar, shown);
+      postPatch(bar, value);
     };
     mark.addEventListener('pointermove', move);
     mark.addEventListener('pointerup', stop);
@@ -264,58 +351,30 @@ function bindRadarDrag(svg, mark, bar, scale, cx, cy, radius, index, count) {
   });
 }
 
+function swatch(index) {
+  const node = el('span', { class: 'swatch' });
+  node.style.background = SLICE_COLORS[index % SLICE_COLORS.length];
+  return node;
+}
+
 function legend(chart) {
   return el('div', { class: 'legend' }, chart.bars.map((bar, index) => el('span', {}, [
-    el('span', { class: 'swatch', style: 'background:' + SLICE_COLORS[index % SLICE_COLORS.length] }),
-    bar.label + ' ' + (bar.value == null ? '—' : bar.value),
+    swatch(index),
+    bar.label + ' ' + shown(bar.value),
   ])));
 }
 
-function postPatch(bar, shown) {
-  if (String(shown) !== String(bar.expected) && String(shown) !== String(bar.value)) {
+function postPatch(bar, value) {
+  if (String(value) !== String(bar.expected) && String(value) !== String(bar.value)) {
     state.post({
       type: 'patch',
+      path: bar.path,
       start: bar.start,
       end: bar.end,
-      value: String(shown),
+      value: String(value),
       expected: bar.expected,
     });
   }
-}
-
-function bindPointDrag(svg, dot, bar, scale, height, pad) {
-  dot.addEventListener('pointerdown', (event) => {
-    if (state.editing) return;
-    event.preventDefault();
-    try { dot.setPointerCapture(event.pointerId); } catch (error) { /* the pointer can still move */ }
-    let shown = bar.value;
-    const move = (pointer) => {
-      const rect = svg.getBoundingClientRect();
-      const span = rect.height * ((height - pad * 2) / height);
-      const top = rect.top + rect.height * (pad / height);
-      const ratio = span <= 0 ? 0 : Math.min(1, Math.max(0, 1 - (pointer.clientY - top) / span));
-      const factor = 10 ** (bar.decimals || 0);
-      shown = Math.round(ratio * scale * factor) / factor;
-      const cy = height - pad - (shown / scale) * (height - pad * 2);
-      dot.setAttribute('cy', String(cy));
-    };
-    const stop = () => {
-      dot.removeEventListener('pointermove', move);
-      dot.removeEventListener('pointerup', stop);
-      if (String(shown) !== String(bar.expected) && String(shown) !== String(bar.value)) {
-        state.post({
-          type: 'patch',
-          start: bar.start,
-          end: bar.end,
-          value: String(shown),
-          expected: bar.expected,
-        });
-      }
-    };
-    dot.addEventListener('pointermove', move);
-    dot.addEventListener('pointerup', stop);
-    move(event);
-  });
 }
 
 function renderBar(bar, scale) {
@@ -324,7 +383,7 @@ function renderBar(bar, scale) {
   const fill = el('div', { class: 'fill' });
   fill.style.width = width + '%';
   track.append(fill);
-  const value = el('span', { class: 'bar-value', text: bar.value == null ? '—' : String(bar.value) });
+  const value = el('span', { class: 'bar-value', text: shown(bar.value) });
   if (bar.editable) {
     track.setAttribute('role', 'slider');
     track.setAttribute('aria-label', 'Drag ' + bar.label);
@@ -342,27 +401,19 @@ function bindDrag(track, fill, valueNode, bar, scale) {
     if (state.editing) return;
     event.preventDefault();
     try { track.setPointerCapture(event.pointerId); } catch (error) { /* the pointer can still move */ }
-    let shown = bar.value;
+    let value = bar.value;
     const move = (pointer) => {
       const rect = track.getBoundingClientRect();
       const ratio = rect.width <= 0 ? 0 : Math.min(1, Math.max(0, (pointer.clientX - rect.left) / rect.width));
       const factor = 10 ** (bar.decimals || 0);
-      shown = Math.round(ratio * scale * factor) / factor;
-      fill.style.width = Math.max(0, Math.min(100, (shown / scale) * 100)) + '%';
-      valueNode.textContent = String(shown);
+      value = Math.round(ratio * scale * factor) / factor;
+      fill.style.width = Math.max(0, Math.min(100, (value / scale) * 100)) + '%';
+      valueNode.textContent = String(value);
     };
     const stop = () => {
       track.removeEventListener('pointermove', move);
       track.removeEventListener('pointerup', stop);
-      if (String(shown) !== String(bar.expected) && String(shown) !== String(bar.value)) {
-        state.post({
-          type: 'patch',
-          start: bar.start,
-          end: bar.end,
-          value: String(shown),
-          expected: bar.expected,
-        });
-      }
+      postPatch(bar, value);
     };
     track.addEventListener('pointermove', move);
     track.addEventListener('pointerup', stop);
@@ -370,20 +421,84 @@ function bindDrag(track, fill, valueNode, bar, scale) {
   });
 }
 
-function renderChart(chart, type) {
-  if (chart.error) return el('p', { class: 'missing', text: chart.error });
+function renderCategory(chart, type) {
   const scale = chartScale(chart);
   let plot;
-  if (type === 'bar') plot = chart.bars.map((bar) => renderBar(bar, scale));
-  else if (type === 'column') plot = [renderColumns(chart, scale)];
+  if (type === 'column') plot = [renderColumns(chart, scale)];
   else if (type === 'pie' || type === 'donut') plot = [renderPie(chart, type)];
   else if (type === 'radar') plot = [renderRadar(chart)];
-  else plot = [renderSeries(chart, type, scale)];
+  else plot = chart.bars.map((bar) => renderBar(bar, scale));
+  return el('div', {}, [el('h1', { text: chart.title }), ...plot]);
+}
+
+function renderChart(chart, type) {
+  if (chart.error) return el('p', { class: 'missing', text: chart.error });
+  const series = chart.series.filter((entry) => entry.bars.length);
+  if (!series.length) return el('p', { class: 'muted', text: 'No chart data.' });
+  const plot = SERIES_TYPES.includes(type)
+    ? [renderSeries({ ...chart, series }, type)]
+    : series.map((entry) => renderCategory({ title: entry.name, bars: entry.bars }, type));
   return el('section', {}, [
-    el('h1', { text: chart.title }),
-    el('p', { class: 'muted mono', text: chart.source + '.' + chart.y }),
+    el('p', { class: 'muted mono', text: chart.source + ' · ' + series.map((entry) => entry.name).join(', ') }),
     ...plot,
   ]);
 }
 
-export { svgEl, chartScale, seriesPoints, polylinePoints, renderSeries, renderColumns, bindColumnDrag, renderPie, slicePath, renderRadar, polar, bindRadarDrag, legend, postPatch, bindPointDrag, renderBar, bindDrag, renderChart };
+function initialType(name) {
+  const type = String(name).toLowerCase();
+  return TYPES.includes(type) ? type : 'bar';
+}
+
+function decimalsOf(values) {
+  return Math.max(0, ...values.map((value) => (String(value).split('.')[1] || '').length));
+}
+
+function barsOf(series, labels) {
+  const decimals = decimalsOf(series.values);
+  return labels.map((label, index) => {
+    const value = Number(series.values[index]);
+    const finite = series.values[index] !== null && Number.isFinite(value);
+    return {
+      label: String(label),
+      value: finite ? value : null,
+      expected: finite ? value : null,
+      editable: finite && Array.isArray(series.paths[index]),
+      path: series.paths[index],
+      decimals,
+    };
+  });
+}
+
+function toEdit(message) {
+  return { type: 'edit', path: message.path, kind: 'atom', header: false, row: 0, col: 0, text: message.value };
+}
+
+function mountChart(host, node) {
+  const model = {
+    title: node.title,
+    source: node.source,
+    series: node.series.map((series) => ({ name: series.name, bars: barsOf(series, node.labels) })),
+  };
+  let type = initialType(node.chart);
+  const draw = () => {
+    const buttons = TYPES.map((name) => el('button', {
+      type: 'button',
+      class: name === type ? 'on' : '',
+      text: name,
+      onclick: () => { type = name; draw(); },
+    }));
+    host.replaceChildren(el('div', { class: 'type-row' }, buttons), renderChart(model, type));
+  };
+  draw();
+}
+
+function mount(root) {
+  root.querySelectorAll('.chart[data-chart]').forEach((host) => mountChart(host, JSON.parse(host.getAttribute('data-chart'))));
+}
+
+if (typeof document !== 'undefined' && document.querySelectorAll) {
+  state.post = (message) => api.postMessage(toEdit(message));
+  mount(document);
+}
+
+export { svgEl, chartScale, polylinePoints, seriesFrame, renderSeries, renderColumns, bindColumnDrag, renderPie, slicePath, renderRadar, polar, bindRadarDrag, legend, postPatch, bindPointDrag, renderBar, bindDrag, renderChart, initialType, barsOf, toEdit, mount, TYPES };

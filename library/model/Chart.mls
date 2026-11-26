@@ -1,5 +1,0 @@
-module Chart with
-  val Bar = "Bar"
-  val Line = "Line"
-  val Pie = "Pie"
-  val all = [Bar, Line, Pie]

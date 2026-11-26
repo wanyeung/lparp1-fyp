@@ -1,25 +1,65 @@
 // Categories credit: Cellery (UIST '26), https://cseweb.ucsd.edu/~mcoblenz/assets/pdf/uist26_cellery.pdf
+
 module Primitive with
 
-  fun table(name, value) =
-    { name: name, title: name, kind: "table", headers: value.0, rows: value.slice(1), children: [] }
+  fun nested(value) =
+    if value is Array then true
+    else if value is {} then true
+    else false
 
-  fun list(name, value) =
-    { name: name, title: name, kind: "list", headers: ["value"], rows: value.map(x => [x]), children: [] }
+  fun scalarRow(row) =
+    if row is Array then row.every(cell => nested(cell) == false) else false
 
-  fun atom(name, value) =
-    { name: name, title: name, kind: "atom", headers: ["value"], rows: [[value]], children: [] }
+  fun isTable(value) = value.length > 0 && value.every(row => scalarRow(row))
 
-  fun block(name, value) =
-    { name: name, title: name, kind: "block", headers: [], rows: [], children: globalThis.Object.entries(value).map(entry => make(entry.0, entry.1)) }
+  fun isFlat(value) = value.every(x => nested(x) == false)
 
-  fun make(name, value) =
+  fun isText(value) =
+    if value is Str then value.startsWith("#") || value.includes("\n") else false
+
+  fun imported(p) = if p.origin is Str then p.origin != "" else false
+
+  fun withOrigin(p, file) = { ...p, origin: file }
+
+  fun isChart(value) = value.chart is Str
+
+  fun node(name, path, kind, headers, rows, children) =
+    { name: name, title: name, kind: kind, path: path, headers: headers, rows: rows, children: children }
+
+  fun table(path, name, value) = node(name, path, "table", value.0, value.slice(1), [])
+
+  fun list(path, name, value) = node(name, path, "list", [""], value.map(x => [x]), [])
+
+  fun atom(path, name, value) = node(name, path, "atom", [""], [[value]], [])
+
+  fun text(path, name, value) = { ...node(name, path, "text", [], [], []), text: value }
+
+  fun chart(path, name, value) = { ...node(name, path, "chart", [], [], []), spec: value }
+
+  fun sequence(path, name, value) =
+    node(name, path, "list", [], [], value.map((x, i) => build(path.concat([i]), globalThis.String(i), x)))
+
+  fun block(path, name, value) =
+    node(name, path, "block", [], [], globalThis.Object.entries(value).map(entry => build(path.concat([entry.0]), entry.0, entry.1)))
+
+  fun build(path, name, value) =
     if value is Array then
-      if value.length > 0 then
-        if value.0 is Array then table(name, value)
-        else list(name, value)
-      else list(name, value)
-    else if value is {} then block(name, value)
-    else atom(name, value)
+      if isTable(value) then table(path, name, value)
+      else if isFlat(value) then list(path, name, value)
+      else sequence(path, name, value)
+    else if value is {} then
+      if isChart(value) then chart(path, name, value) else block(path, name, value)
+    else if isText(value) then text(path, name, value)
+    else atom(path, name, value)
 
-  fun rename(primitive, title) = { ...primitive, title: title }
+  fun make(name, value) = build([name], name, value)
+
+  fun cellPath(leaf, row, col) =
+    if leaf.kind == "table" then leaf.path.concat([row + 1, col])
+    else if leaf.kind == "list" then leaf.path.concat([row])
+    else leaf.path
+
+  fun find(primitives, name) =
+    let top = primitives.filter(p => p.name == name)
+    if top.length > 0 then [top.0]
+    else primitives.flatMap(p => find(p.children, name)).slice(0, 1)

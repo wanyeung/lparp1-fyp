@@ -1,7 +1,0 @@
-module Sheet with
-
-  fun make(name, file, primitives) =
-    { name: name, primitives: primitives, meta: { file: file, derived: false, sources: [] } }
-
-  fun derive(name, file, sources, primitives) =
-    { name: name, primitives: primitives, meta: { file: file, derived: true, sources: sources } }
