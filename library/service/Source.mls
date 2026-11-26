@@ -4,57 +4,128 @@ module Source with
 
   fun position(source, name) = ("\n" + source).indexOf("\nval " + name + " =")
 
-  fun start(source, name) =
-    let pos = position(source, name)
-    if pos < 0 then -1 else source.indexOf("[", pos)
+  fun importedFiles(source) =
+    source.split("\n").filter(line => line.startsWith("import \"")).map(line => line.slice(8, line.lastIndexOf("\"")))
 
-  fun locate(source, name, row, col) =
-    let lb = start(source, name)
-    let n = source.length
-    let i = lb
-    let depth = 0
-    let inString = false
+  fun moduleOf(file) = file.slice(file.lastIndexOf("/") + 1).replace(".mls", "")
+
+  fun skip(source, from) =
+    let i = from
     let inComment = false
-    let r = -1
-    let c = 0
-    let atom = -1
-    let last = -1
-    let found = null
-    while lb >= 0 && i < n && found is null do
+    let going = true
+    while going && i < source.length do
       let ch = source.charAt(i)
       if inComment then
         if ch == "\n" then set inComment = false else ()
-      else if inString then
-        if ch == "\\" then set i = i + 1
-        else if ch == "\"" then
-          set inString = false
-          set last = i
+        set i = i + 1
+      else if ch == "/" && source.charAt(i + 1) == "/" then
+        set inComment = true
+        set i = i + 2
+      else if isSpace(ch) then set i = i + 1
+      else set going = false
+    i
+
+  fun valueEnd(source, from) =
+    let j = from
+    let last = from
+    let depth = 0
+    let inString = false
+    let inComment = false
+    let done = false
+    while done == false && j < source.length do
+      let ch = source.charAt(j)
+      if inComment then
+        if ch == "\n" then
+          set inComment = false
+          if depth == 0 then set done = true else ()
         else ()
-      else if ch == "/" && source.charAt(i + 1) == "/" then set inComment = true
+      else if inString then
+        if ch == "\\" then set j = j + 1
+        else if ch == "\"" then set inString = false
+        else ()
+        set last = j + 1
+      else if ch == "/" && source.charAt(j + 1) == "/" then set inComment = true
       else if ch == "\"" then
         set inString = true
-        if depth == 2 && atom < 0 then set atom = i else ()
-      else if ch == "[" then
+        set last = j + 1
+      else if ch == "[" || ch == "{" || ch == "(" then
         set depth = depth + 1
-        if depth == 2 then
-          set r = r + 1
-          set c = 0
-          set atom = -1
-        else ()
-      else if ch == "]" || ch == "," then
-        if depth == 2 && atom >= 0 then
-          if r == row && c == col then set found = [atom, last + 1] else ()
-          set atom = -1
-        else ()
-        if ch == "," && depth == 2 then set c = c + 1 else ()
-        if ch == "]" then set depth = depth - 1 else ()
-        if depth == 0 then set i = n else ()
-      else if isSpace(ch) == false then
-        if depth == 2 && atom < 0 then set atom = i else ()
-        if depth == 2 then set last = i else ()
+        set last = j + 1
+      else if ch == "]" || ch == "}" || ch == ")" then
+        if depth == 0 then set done = true
+        else
+          set depth = depth - 1
+          set last = j + 1
+      else if depth == 0 && (ch == "," || ch == "\n") then set done = true
+      else if isSpace(ch) == false then set last = j + 1
       else ()
-      set i = i + 1
-    found
+      set j = j + 1
+    last
+
+  fun origin(source, name) =
+    let v = bindingValue(source, name)
+    let id = if v < 0 then "" else identAt(source, v)
+    let hits = importedFiles(source).filter(f => moduleOf(f) == id)
+    if id != "" && hits.length > 0 then hits.0 else ""
+
+  fun bindingValue(source, name) =
+    let pos = position(source, name)
+    if pos < 0 then -1 else skip(source, pos + ("val " + name + " =").length)
+
+  fun inArray(source, from, index, rest) =
+    let i = skip(source, from)
+    let k = 0
+    let result = null
+    let going = true
+    while going && i < source.length && source.charAt(i) != "]" do
+      if k == index then
+        set result = descend(source, i, rest)
+        set going = false
+      else
+        let e = valueEnd(source, i)
+        if e == i then set going = false
+        else
+          set i = skip(source, e)
+          if source.charAt(i) == "," then set i = skip(source, i + 1) else ()
+          set k = k + 1
+    result
+
+  fun inRecord(source, from, key, rest) =
+    let i = skip(source, from)
+    let result = null
+    let going = true
+    while going && i < source.length && source.charAt(i) != "}" do
+      let field = identAt(source, i)
+      let colon = skip(source, i + field.length)
+      if field == "" || source.charAt(colon) != ":" then set going = false
+      else
+        let v = skip(source, colon + 1)
+        if field == key then
+          set result = descend(source, v, rest)
+          set going = false
+        else
+          let e = valueEnd(source, v)
+          if e == v then set going = false
+          else
+            set i = skip(source, e)
+            if source.charAt(i) == "," then set i = skip(source, i + 1) else ()
+    result
+
+  fun descend(source, from, steps) =
+    let s = skip(source, from)
+    if steps.length == 0 then [s, valueEnd(source, s)]
+    else
+      let step = steps.0
+      let rest = steps.slice(1)
+      let c = source.charAt(s)
+      let isIndex = globalThis.Number.isFinite(step)
+      if c == "[" && isIndex then inArray(source, s + 1, step, rest)
+      else if c == "{" && isIndex == false then inRecord(source, s + 1, globalThis.String(step), rest)
+      else null
+
+  fun locate(source, path) =
+    let v = bindingValue(source, path.0)
+    if v < 0 then null else descend(source, v, path.slice(1))
 
   fun isIdent(c) = (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "0" && c <= "9") || c == "_"
 

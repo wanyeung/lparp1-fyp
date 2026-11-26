@@ -1,4 +1,5 @@
 import "./Source.mls"
+import "../model/Document.mls"
 
 module Scope with
 
@@ -11,3 +12,7 @@ module Scope with
       if r.name == "" then []
       else if available.includes(r.name) then [r.name]
       else available.filter(n => Source.mentions(source.slice(r.from, r.to), n))
+
+  fun view(tree, source, offset) =
+    let picked = names(source, offset, Document.names(tree))
+    { names: picked, tree: Document.focus(tree, picked) }

@@ -66,22 +66,22 @@ Spreadsheets are easy to use but hard to check. Code is easy to check but hard t
 
 ## Usage
 
-- VS Code: run `npm run vscode` (needs the `code` command on your PATH). It copies `test/fixtures` to `build/demo` and opens that folder, with `demo.mls`, in an Extension Development Host. Opening an `.mls` file opens the **Document View** in the Secondary Side Bar on the right (the MLscript icon there) by itself, and it never replaces the Explorer; the button at the right of the editor title bar, next to the other editor icons, or **MLscript: Open Document View** brings it back. The panel follows the cursor: on a variable or inside its table it shows that table, inside a function it shows the tables the function uses, and on a blank line or outside any declaration it shows the whole file. It needs VS Code 1.104 or newer. Settings `mlstudio.autoOpen` and `mlstudio.followCursor` turn the two behaviours off. If VS Code asks whether you trust the folder, choose Trust: the extension runs the code in your `.mls` files, so VS Code keeps it disabled in Restricted Mode. Edit a green cell and press Enter: the source is patched, saved and run again.
-- Browser: run `npm run browser` and open http://localhost:8080/. It starts with a small CSV table. Open your own CSV, edit cells, download the `.mls` or the `.html`, or pick a view from **View Documentations**.
+- VS Code: run `npm run vscode` (needs the `code` command on your PATH). It opens `build/demo`, a copy of `test/fixtures`, in an Extension Development Host. Open an `.mls` file and the Document View appears in the Secondary Side Bar, following your cursor. Choose Trust if VS Code asks, because the extension runs your `.mls` code. Needs VS Code 1.104 or newer.
+- Browser: run `npm run browser` and open the address it prints (http://localhost:8080/ by default). Open an `.mls` or import a CSV, read the document, change the data in View source, and download the `.mls` or `.html`. The use cases in `test/fixtures/usecases/` are preloaded.
 
 Demo video: https://youtu.be/dAxtzRr72uA
 
 ## Layout
 
-- `runtime/`: the MLscript compiler bundle and standard library, `VERSION.md` for the commit, `Doc.md` for what is in it, and `compile.mjs`, which builds `library/` into `build/library/`.
+- `runtime/`: the MLscript compiler and standard library, and `compile.mjs`, which builds `library/` into `build/library/`.
 - `library/`: the loop itself, written in MLscript.
-  - `model/`: `Primitive` is a table, a list, an atom or a block. `Sheet` holds primitives and records the `.mls` file it references and whether it is derived from other sheets. `Document` describes what to show: a sequence of imported primitives (optionally renamed) and Markdown text. One `.mls` file can have many documents. `Chart` lists Bar, Line and Pie, and a Document can chart columns of a table.
-  - `controller/`: receives a host's payload, builds the sheet and the default document of a saved file, and applies edits. `D3Manipulation/` holds chart drag code and a TODO, see its README.
-  - `service/`: `Html.generateHtml` renders items for a webview, `Charts.js` draws the charts in the page (plain SVG, ported from ggongtaek's `media/webview.js`), `Source` finds things in the source text (a declaration, a table cell, the word under the cursor), `SourceEdit` rewrites one literal there, and `Scope` picks which tables the cursor is on.
-  - `io/`: `Csv` reads CSV, `Export` writes `.mls` and `.html`.
+  - `model/`: `Primitive` (a table, list, atom or block) and `Document` (the tree to show). See `Doc.md`.
+  - `controller/`: takes a host's payload, builds the tree and applies edits. `D3Manipulation/Marks.js` draws the charts.
+  - `service/`: renders HTML, finds and rewrites literals in the source, and picks what the cursor is on.
+  - `io/`: reads CSV and writes `.mls` and `.html`.
 - `vscodehost/`: the VS Code extension, a thin host over `library/`.
-- `browserhost/`: the website, a thin host over `library/`.
-- `test/`: tests, and `fixtures/`: `demo.mls`, Owen's `usecases/` and ggongtaek's `examples/` (two entry points sharing one module). The use cases and examples are not wired in yet: the bundled compiler fails on three of the use cases, and the examples import builders from ggongtaek's `Studio.mls`, which is not here.
+- `browserhost/`: the website, a thin host over `library/` that compiles in the page.
+- `test/`: the tests, and `fixtures/` with the sample `.mls` files.
 
 ## Credits & Contact
 

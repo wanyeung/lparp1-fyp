@@ -10,11 +10,64 @@ module SourceEdit with
     else if t != "" && globalThis.Number.isFinite(globalThis.Number(t)) then { ok: true, text: t }
     else { ok: false, error: "Enter a number for this cell." }
 
-  fun setCell(source, name, row, col, text) =
-    let span = Source.locate(source, name, row, col)
+  fun at(source, path, text) =
+    let span = Source.locate(source, path)
     if span is null then { ok: false, error: "That cell is not a plain literal in the source." }
     else
       let old = source.slice(span.0, span.1)
-      let lit = literal(old, text)
-      if lit.ok then { ok: true, source: source.slice(0, span.0) + lit.text + source.slice(span.1) }
-      else lit
+      if old.startsWith("[") || old.startsWith("{") then { ok: false, error: "That cell is not a plain literal in the source." }
+      else
+        let lit = literal(old, text)
+        if lit.ok then { ok: true, source: source.slice(0, span.0) + lit.text + source.slice(span.1) }
+        else lit
+
+  fun span(b, to) = { name: b.name, isVal: b.isVal, from: b.from, to: to }
+
+  fun blocks(source) =
+    let lines = source.split("\n")
+    let found = []
+    let pos = 0
+    let i = 0
+    while i < lines.length do
+      let line = lines.at(i)
+      if Source.declName(line) != "" then set found = found.concat([{ name: Source.declName(line), isVal: line.startsWith("val "), from: pos }])
+      else ()
+      set pos = pos + line.length + 1
+      set i = i + 1
+    found.map((b, k) => span(b, if k + 1 < found.length then found.at(k + 1).from else source.length))
+
+  fun neighbour(found, i, dir) =
+    let k = i + dir
+    while k >= 0 && k < found.length && found.at(k).isVal == false do set k = k + dir
+    if k >= 0 && k < found.length then k else -1
+
+  fun move(source, name, dir) =
+    let found = blocks(source)
+    let i = found.findIndex(b => b.name == name && b.isVal)
+    let k = if i < 0 then -1 else neighbour(found, i, dir)
+    if k < 0 then { ok: false, error: "There is nothing to swap with in that direction." }
+    else
+      let a = found.at(i)
+      let b = found.at(k)
+      let text = source.slice(a.from, a.to)
+      let block = if text.endsWith("\n") then text else text + "\n"
+      let rest = source.slice(0, a.from) + source.slice(a.to)
+      let spot = if dir < 0 then b.from else b.to - (a.to - a.from)
+      let glue = if spot > 0 && rest.charAt(spot - 1) != "\n" then "\n" else ""
+      { ok: true, source: rest.slice(0, spot) + glue + block + rest.slice(spot) }
+
+  fun elements(source, path, i) =
+    let span = Source.locate(source, path.concat([i]))
+    if span is null then [] else [source.slice(span.0, span.1)].concat(elements(source, path, i + 1))
+
+  fun header(source, path, kind, col, text) =
+    let name = text.trim()
+    if name == "" then { ok: false, error: "Enter a column name." }
+    else if kind == "table" then at(source, path.concat([0, col]), name)
+    else
+      let span = Source.locate(source, path)
+      if span is null then { ok: false, error: "That value is not a plain literal in the source." }
+      else
+        let cells = if kind == "list" then elements(source, path, 0) else [source.slice(span.0, span.1)]
+        let rows = [globalThis.JSON.stringify([name])].concat(cells.map(c => "[" + c + "]"))
+        { ok: true, source: source.slice(0, span.0) + "[\n  " + rows.join(",\n  ") + "\n]" + source.slice(span.1) }
