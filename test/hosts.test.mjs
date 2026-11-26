@@ -8,23 +8,22 @@ import { promisify } from 'node:util'
 const root = path.resolve(import.meta.dirname, '..')
 const exec = promisify(execFile)
 
-test('the vscode host runner prints the sheet and document of a saved file', async () => {
+test('the vscode host runner prints the document tree of a saved file', async () => {
   const dir = await mkdtemp(path.join(root, 'build', 'host-'))
   const file = path.join(dir, 'demo.mls')
-  await copyFile(path.join(root, 'test', 'fixtures', 'demo.mls'), file)
-  const { stdout } = await exec(process.execPath, [path.join(root, 'vscodehost', 'run.mjs'), file])
+  await copyFile(path.join(root, 'test', 'fixtures', 'table.mls'), file)
+  const { stdout } = await exec(process.execPath, [path.join(root, 'vscodehost', 'src', 'services', 'worker.mjs'), file])
   const result = JSON.parse(stdout.trim().split('\n').pop())
   assert.ok(result.ok)
-  assert.deepEqual(result.sheet.primitives.map((g) => [g.name, g.kind]), [['sales', 'table'], ['teams', 'list'], ['total', 'atom']])
-  assert.equal(result.sheet.meta.file, file)
-  assert.equal(result.document.file, file)
+  assert.deepEqual(result.tree.children.map((n) => [n.name, n.kind]), [['sales', 'table'], ['teams', 'list'], ['total', 'atom']])
+  assert.equal(result.tree.file, file)
 })
 
 test('the vscode host runner reports compile errors instead of crashing', async () => {
   const dir = await mkdtemp(path.join(root, 'build', 'host-'))
   const file = path.join(dir, 'broken.mls')
   await writeFile(file, 'val x = [1,\n')
-  const { stdout } = await exec(process.execPath, [path.join(root, 'vscodehost', 'run.mjs'), file])
+  const { stdout } = await exec(process.execPath, [path.join(root, 'vscodehost', 'src', 'services', 'worker.mjs'), file])
   const result = JSON.parse(stdout.trim().split('\n').pop())
   assert.equal(result.ok, false)
   assert.ok(result.error.length > 0)
@@ -43,7 +42,8 @@ test('every module the browser host imports is served', async () => {
     const text = await res.text()
     for (const m of text.matchAll(/(?:from|import)\s*["'](\.[^"']+\.m?js)["']/g)) await visit(new URL(m[1], url).href)
   }
-  await visit('http://localhost:18081/browserhost/main.js')
+  await visit('http://localhost:18081/browserhost/src/main.js')
+  for (const extra of ['runtime/compiler/MLscript.mjs', 'runtime/std/Prelude.mls', 'runtime/std/Runtime.mls', 'runtime/std/Runtime.mjs', 'build/library/controller/D3Manipulation/Marks.js']) assert.ok((await fetch(`http://localhost:18081/${extra}`)).ok, extra)
   server.kill()
   assert.deepEqual(missing, [])
   assert.ok(seen.size > 8)
